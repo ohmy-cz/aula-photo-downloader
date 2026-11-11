@@ -10,6 +10,9 @@ import { processBytes } from '../src/metadata/processor'
 import { required } from '../src/required'
 import fixture from './fixtures/aula/gallery-v25.json'
 
+// Select the browser-worker loader so fetchWasm also handles Windows file URLs.
+Object.assign(globalThis, { importScripts: () => {} })
+
 /** Generate compressed metadata in the synthetic PNG; no downloaded or captured fixture is stored. */
 const pngWithText = async (text: string, xmp = false) => {
   const source = await readFile('tests/fixtures/sample.png')
