@@ -78,7 +78,7 @@
   "clearHistory": "Ryd gemte importdatoer",
   "historyCleared": "Gemte importdatoer er ryddet. Downloadede filer er bevaret.",
   "historyBusy": "En download er stadig aktiv. Vent, til den er færdig, før du rydder historik.",
-  "independent": "Uafhængig udvidelse; ikke tilknyttet Aula eller KOMBIT.",
+  "independent": "Uafhængig udvidelse; ikke tilknyttet Aula, KOMBIT eller Netcompany.",
   "openDownloader": "Åbn downloader",
   "settings": "Indstillinger",
   "import": "Importér",

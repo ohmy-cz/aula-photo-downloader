@@ -84,7 +84,7 @@
   "clearHistory": "Smazat uložená data importů",
   "historyCleared": "Uložená data importů byla smazána. Stažené soubory zůstaly zachovány.",
   "historyBusy": "Stahování stále probíhá. Před vymazáním historie počkejte na jeho dokončení.",
-  "independent": "Nezávislé rozšíření; není spojeno s Aula ani KOMBIT.",
+  "independent": "Nezávislé rozšíření; není spojeno s Aula, KOMBIT ani Netcompany.",
   "openDownloader": "Otevřít stahování",
   "settings": "Nastavení",
   "import": "Importovat",

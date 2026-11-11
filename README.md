@@ -41,17 +41,17 @@ Requires desktop Chrome 117 or newer.
 
 ## Design choices
 
-- **Optional Immich import.** Connect Immich in the extension's Settings using an API key with the permissions shown there (Immich API v3.4.1). Import becomes the primary action, with a local download link underneath. The last selected Immich album is remembered across browser sessions; first use selects the newest writable album. Imports have no artificial pause between files and silently skip photos older than the destination album's latest photo capture time. Local downloads and each Immich destination have separate import dates.
 - **Album-bound downloads.** Switching albums resets the stats and stops the previous queue. A file already in progress finishes in its original album folder.
 - **Keep original filenames.** Successful downloads keep Aula's filenames, with safety cleanup and suffixes for name collisions. Chronological sorting uses capture-date metadata instead of added date prefixes.
 - **Keep original quality.** Download original media rather than thumbnails, and update metadata without re-encoding photos or audio/video. Processing stays on your computer; Aula's copies remain untouched.
 - **Easy to use again and again**: the plugin remembers the last time you downloaded images, and will automatically select that date as a cutoff date to prevent duplicates.
+- **Optional Immich import.**
 
 ## Disclaimers
 
 __Use this sowtware at your own risk__. No guarantees given.
 
-This independent project is not an official Aula product and is not affiliated with or endorsed by Aula or KOMBIT.
+This independent project is not an official Aula product and is not affiliated with or endorsed by Aula, KOMBIT or Netcompany.
 
 All trademarks, product names and logos mentioned in this project, including Aula, are the property of their respective owners.
 

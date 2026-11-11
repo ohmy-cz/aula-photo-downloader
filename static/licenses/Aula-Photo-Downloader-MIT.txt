@@ -23,4 +23,4 @@ SOFTWARE.
 Project notice (not an additional license condition)
 
 Aula Photo Downloader is an independent, unofficial project, not affiliated
-with or endorsed by Aula or KOMBIT. Use it at your own risk.
+with or endorsed by Aula, KOMBIT or Netcompany. Use it at your own risk.

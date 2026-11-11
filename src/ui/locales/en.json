@@ -78,7 +78,7 @@
   "clearHistory": "Clear saved import dates",
   "historyCleared": "Saved import dates cleared. Downloaded files were kept.",
   "historyBusy": "A download is still active. Wait for it to finish before clearing history.",
-  "independent": "Independent extension; not affiliated with Aula or KOMBIT.",
+  "independent": "Independent extension; not affiliated with Aula, KOMBIT or Netcompany.",
   "openDownloader": "Open downloader",
   "settings": "Settings",
   "import": "Import",

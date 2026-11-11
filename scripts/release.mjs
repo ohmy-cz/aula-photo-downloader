@@ -133,7 +133,7 @@ else {
       '--raw-field',
       `name=Aula Photo Downloader ${packageVersion} (alpha)`,
       '--raw-field',
-      'body=Independent alpha; not affiliated with Aula or KOMBIT. Use at your own risk. Photo tagging stays on your device. Extract the ZIP and load its folder in Chrome using Developer mode.',
+      'body=Independent alpha; not affiliated with Aula, KOMBIT or Netcompany. Use at your own risk. Photo tagging stays on your device. Extract the ZIP and load its folder in Chrome using Developer mode.',
     ))
   }
 

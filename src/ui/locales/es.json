@@ -81,7 +81,7 @@
   "clearHistory": "Borrar las fechas de importación guardadas",
   "historyCleared": "Se borraron las fechas de importación guardadas. Los archivos descargados se conservaron.",
   "historyBusy": "Todavía hay una descarga activa. Espera a que termine antes de borrar el historial.",
-  "independent": "Extensión independiente; sin afiliación con Aula ni KOMBIT.",
+  "independent": "Extensión independiente; sin afiliación con Aula, KOMBIT ni Netcompany.",
   "openDownloader": "Abrir panel de descarga",
   "settings": "Configuración",
   "import": "Importar",
