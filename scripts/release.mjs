@@ -118,22 +118,23 @@ if (release && !release.draft) {
 }
 else {
   if (!release) {
-    gh(
-      'release',
-      'create',
-      tag,
-      '--repo',
-      repository,
-      '--target',
-      sha,
-      '--draft',
-      '--title',
-      `Aula Photo Downloader ${packageVersion} (alpha)`,
-      '--notes',
-      'Independent alpha; not affiliated with Aula or KOMBIT. Use at your own risk. Photo tagging stays on your device. Extract the ZIP and load its folder in Chrome using Developer mode.',
-    )
-
-    release = findRelease()
+    // Use the creation response directly; release listings may not reflect a new draft immediately.
+    release = JSON.parse(gh(
+      'api',
+      `repos/${repository}/releases`,
+      '--method',
+      'POST',
+      '--raw-field',
+      `tag_name=${tag}`,
+      '--raw-field',
+      `target_commitish=${sha}`,
+      '--field',
+      'draft=true',
+      '--raw-field',
+      `name=Aula Photo Downloader ${packageVersion} (alpha)`,
+      '--raw-field',
+      'body=Independent alpha; not affiliated with Aula or KOMBIT. Use at your own risk. Photo tagging stays on your device. Extract the ZIP and load its folder in Chrome using Developer mode.',
+    ))
   }
 
   const target = get(`commits/${tag}`)
