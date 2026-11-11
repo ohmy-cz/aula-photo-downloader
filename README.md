@@ -1,8 +1,8 @@
 # Aula Photo Downloader
 
 [![Checks](https://github.com/ohmy-cz/aula-photo-downloader/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/ohmy-cz/aula-photo-downloader/actions/workflows/checks.yml)
-[![Latest release](https://img.shields.io/github/v/release/ohmy-cz/aula-photo-downloader)](https://github.com/ohmy-cz/aula-photo-downloader/releases/latest)
-[![Project license](https://img.shields.io/github/license/ohmy-cz/aula-photo-downloader?label=project%20license)](LICENSE)
+[![Latest release](https://img.shields.io/badge/release-latest-blue)](https://github.com/ohmy-cz/aula-photo-downloader/releases/latest)
+[![Project license](https://img.shields.io/badge/project%20license-MIT-blue)](LICENSE)
 
 ## Motivation
 When you try to download photos from Aula, those have all metadata striped; presumably for privacy and security reasons. Among those, the photo capture date is removed too.
