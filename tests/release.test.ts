@@ -193,15 +193,14 @@ if (args[0] === "api") {
   } else if (route.startsWith("commits/")) {
     if (!state.sha) fail("HTTP 422");
     reply = {sha: state.sha};
-  } else if (route.startsWith("releases/tags/")) {
-    if (!state.release) fail("HTTP 404");
-    reply = state.release;
+  } else if (route === "releases?per_page=100") {
+    reply = [state.release ? [state.release] : []];
   } else if (route === "releases/latest") {
     if (!state.latest) fail("HTTP 404");
     reply = state.latest;
   } else fail("Unknown route");
 } else if (args[1] === "create") {
-  state.release = {draft: true, target_commitish: process.env.GITHUB_SHA, assets: []};
+  state.release = {tag_name: args[2], draft: true, target_commitish: process.env.GITHUB_SHA, assets: []};
 } else if (args[1] === "upload") {
   if (state.failUpload) fail("Synthetic upload interruption");
   state.release.assets = [{name: "aula-photo-downloader.zip"}];

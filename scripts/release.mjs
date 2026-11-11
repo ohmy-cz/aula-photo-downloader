@@ -63,6 +63,12 @@ const get = (path) => {
 
 const tag = `v${packageVersion}`
 
+/** Include unpublished drafts, which GitHub's release-by-tag endpoint does not return. */
+const findRelease = () =>
+  JSON.parse(gh('api', `repos/${repository}/releases?per_page=100`, '--paginate', '--slurp'))
+    .flat()
+    .find(release => release.tag_name === tag) ?? null
+
 const existingTag = get(`git/ref/tags/${tag}`)
 
 const existingCommit = existingTag ? get(`commits/${tag}`) : null
@@ -73,7 +79,7 @@ if (existingCommit && existingCommit.sha !== sha) {
   )
 }
 
-let release = get(`releases/tags/${tag}`)
+let release = findRelease()
 
 if (!existingCommit) {
   if (release && !release.draft) {
@@ -127,7 +133,7 @@ else {
       'Independent alpha; not affiliated with Aula or KOMBIT. Use at your own risk. Photo tagging stays on your device. Extract the ZIP and load its folder in Chrome using Developer mode.',
     )
 
-    release = get(`releases/tags/${tag}`)
+    release = findRelease()
   }
 
   const target = get(`commits/${tag}`)
