@@ -1,0 +1,27 @@
+{
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#145775",
+    "statusBar.foreground": "#ffffff",
+    "statusBar.border": "#62c6cb",
+    "statusBar.debuggingBackground": "#145775",
+    "statusBar.debuggingForeground": "#ffffff",
+    "statusBar.debuggingBorder": "#62c6cb"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "json",
+    "jsonc",
+    "yaml",
+    "html",
+    "markdown"
+  ],
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "eslint.format.enable": true
+}

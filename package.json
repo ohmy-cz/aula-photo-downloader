@@ -1,0 +1,66 @@
+{
+  "name": "aula-photo-downloader",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A browser extension for archiving Aula photos and videos in your own storage; with resolved correct capture dates and tags.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:wasm": "node scripts/verify-wasm.mjs",
+    "build": "node scripts/build.mjs",
+    "package": "npm run lint && npm run typecheck && npm test && npm run build && node scripts/package.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test:browser": "npm run build && node scripts/test-browser.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "npm run lint -- --fix",
+    "prepare": "husky",
+    "privacy:check": "node scripts/check-privacy.mjs",
+    "privacy:staged": "node scripts/check-privacy.mjs --staged"
+  },
+  "dependencies": {
+    "@colorhythm/exiftool-wasm": "1.0.4",
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@js-temporal/polyfill": "0.5.1",
+    "@mui/icons-material": "9.5.0",
+    "@mui/material": "9.5.0",
+    "i18next": "26.4.2",
+    "i18next-browser-languagedetector": "8.2.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "7.7.3",
+    "@eslint-react/eslint-plugin": "2.13.0",
+    "@ffmpeg/types": "0.12.4",
+    "@html-eslint/eslint-plugin": "0.68.0",
+    "@types/chrome": "0.3.4",
+    "@types/jsdom": "27.0.0",
+    "@types/node": "22.19.7",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@webassemblyjs/leb128": "1.13.2",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "fflate": "0.8.3",
+    "husky": "9.1.7",
+    "jsdom": "29.0.1",
+    "marked": "18.2.0",
+    "puppeteer-core": "25.13.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "eslint-plugin-regexp": "3.1.1",
+    "minimatch": "11.0.8"
+  }
+}

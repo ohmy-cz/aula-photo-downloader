@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Aula Photo Downloader · alpha verification</title>
+        <style>
+      body {
+        margin: 0;
+        background: #f1f5f7;
+        color: #163f58;
+        font: 16px system-ui;
+      }
+      header {
+        background: #145775;
+        color: white;
+        padding: 24px 40px;
+        font-size: 28px;
+      }
+      main {
+        padding: 30px 40px;
+      }
+        </style>
+    </head>
+    <body>
+        <header>Aula Photo Downloader</header>
+        <main>
+            <h1>Alpha verification</h1>
+            <p>
+                Synthetic gallery. Real local WASM processing; simulated downloads. No
+                Aula data is accessed.
+            </p>
+            <label
+            >
+                <input type="checkbox" id="fail">
+                Simulate browser processing
+                failure</label
+      >
+            <br>
+            <label
+            >
+                <input
+                    type="checkbox"
+                    id="slow"
+                    checked
+                >
+                Slow downloads for visual
+                verification</label
+      >
+            <p id="activity">Ready</p>
+        </main>
+        <script src="/demo-client.js"></script>
+        <script src="/content.js"></script>
+    </body>
+</html>

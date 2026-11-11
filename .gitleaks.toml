@@ -1,0 +1,14 @@
+title = "Aula Photo Downloader source, history and release scan"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Pinned FFmpeg HSV filter function pointers, not an API credential"
+condition = "AND"
+paths = ['''(?:^|!)FFmpeg-19feb712f5c1821d8a3fa1ad63c5bd2e3b9672eb/libavfilter/vf_hsvkey\.c$''']
+regexTarget = "match"
+regexes = ['''^do_hsvkey_slice : do_hsvkey16_slice;$''']

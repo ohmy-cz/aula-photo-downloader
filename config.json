@@ -1,0 +1,71 @@
+{
+  "aula": {
+    "origin": "https://www.aula.dk",
+    "mediaOrigin": "https://media-prod.aula.dk",
+    "apiVersion": 25,
+    "maxApiVersionProbes": 3,
+    "mediaMethod": "gallery.getMedia",
+    "albumsMethod": "gallery.getAlbums",
+    "albumsSort": "mediaCreatedAt",
+    "myMediaRoute": "#/galleri/minemedier",
+    "myMediaName": "Medier af dig og dine børn",
+    "defaultPageSize": 12,
+    "maxPageSize": 100,
+    "defaultSort": "uploadedAt",
+    "defaultOrder": "desc",
+    "defaultFilter": "all",
+    "maxRepeatedPages": 2
+  },
+  "timing": {
+    "apiRequestMs": 30000,
+    "mediaFetchMs": 60000,
+    "processingMs": 120000,
+    "operationMs": 360000,
+    "pollMs": 1000,
+    "galleryRefreshRetryMs": 250,
+    "downloadGapMs": 1000,
+    "pageDelayMinMs": 1000,
+    "pageDelayMaxMs": 5000,
+    "blobLeaseMs": 600000
+  },
+  "limits": {
+    "mediaBytes": 268435456,
+    "photoWasmMemoryBytes": 536870912,
+    "metadataBytes": 1048576,
+    "mediaUrlCharacters": 16384,
+    "filenameStemBytes": 160,
+    "childTags": 500,
+    "nameCharacters": 1024,
+    "apiResponseBytes": 2097152,
+    "collectionItems": 50000,
+    "collectionPages": 10000,
+    "collectionBytes": 33554432,
+    "galleryRefreshAttempts": 3
+  },
+  "archive": {
+    "rootFolder": "aula-photo-downloader",
+    "storageKey": "aulaPhotoDownloaderAlpha1",
+    "schemaVersion": 4,
+    "timeZone": "Europe/Copenhagen",
+    "uploadSequenceStartSeconds": 43200,
+    "activationStorageKey": "aulaPhotoDownloaderActivation",
+    "runStorageKey": "aulaPhotoDownloaderRun"
+  },
+  "browser": {
+    "minimumChromeVersion": 117,
+    "panelId": "aula-photo-downloader",
+    "contentScript": "content.js",
+    "popupPage": "popup.html",
+    "popupScript": "ui/material/popup.js",
+    "offscreenPage": "offscreen.html",
+    "workerScript": "runtime/worker.js",
+    "wasmAsset": "assets/exiftool.wasm",
+    "ffmpegCoreAsset": "assets/ffmpeg-core.js",
+    "ffmpegWasmAsset": "assets/ffmpeg-core.wasm",
+    "privacyPage": "privacy.html"
+  },
+  "i18n": {
+    "defaultLanguage": "da",
+    "supportedLanguages": ["cs", "da", "en", "es"]
+  }
+}

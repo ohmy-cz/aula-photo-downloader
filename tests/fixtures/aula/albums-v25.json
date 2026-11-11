@@ -1,0 +1,27 @@
+{
+  "status": {
+    "code": 0,
+    "message": "OK"
+  },
+  "data": [
+    {
+      "id": null,
+      "title": "Medier af dig og dine børn",
+      "creator": null,
+      "thumbnailsUrls": []
+    },
+    {
+      "id": 1001,
+      "title": "Synthetic Album",
+      "creator": {
+        "name": "Synthetic Employee"
+      },
+      "thumbnailsUrls": [
+        "https://media-prod.aula.dk/synthetic/album.jpg?Signature=synthetic"
+      ]
+    }
+  ],
+  "version": 25,
+  "module": "gallery",
+  "method": "getAlbums"
+}

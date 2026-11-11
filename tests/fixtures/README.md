@@ -1,0 +1,7 @@
+JPEG, PNG and MP4 are synthetic test assets. sample.heic is a valid 32×32 HEIC generated locally from sample.png using macOS sips (`sips -s format heic sample.png --out sample.heic`); it exercises metadata and independent decoded-pixel preservation. It contains no private media.
+
+metadata-only.heic preserves ExifTool's minimal QuickTime.heic regression fixture from https://raw.githubusercontent.com/exiftool/exiftool/7403b229f685807df8fd8a9b5cf297aad3cd6d7f/t/images/QuickTime.heic, SHA-256 4e1785e9924600d0274176f52609a2d514481877103b91c714bd2088ea803ae7. Upstream Perl Artistic/GPL terms apply. It exercises HEIC metadata structure only and deliberately has no decodable image payload. Both HEIC cases pass through the actual WASM worker; the valid synthetic sample also passes the native FFmpeg pixel comparison.
+
+TIFF and multi-track videos are generated locally during verification. The JPEG contains the synthetic GPS test position (0, 0) and a clearly synthetic person tag to test metadata preservation. These are invented values, not a person's location or identity.
+
+No fixture is an Aula photograph. Only the public metadata-only HEIC header above is externally sourced. Never add real Aula media, browser screenshots, recordings or response dumps. Names, identifiers, timestamps and URLs in test data must be invented. `scripts/check-privacy.mjs` pins reviewed fixture contents and rejects unreviewed additions or replacements; updating a digest requires inspecting provenance, decoded content and metadata first.

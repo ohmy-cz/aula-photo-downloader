@@ -1,0 +1,2 @@
+npm run privacy:staged &&
+  gitleaks git --staged --config .gitleaks.toml --max-archive-depth 3 --ignore-gitleaks-allow --redact --no-banner

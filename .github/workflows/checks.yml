@@ -1,0 +1,109 @@
+name: Checks and versioned release
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - run: node scripts/check-version.mjs
+  secrets:
+    uses: ./.github/workflows/secrets.yml
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Fixture privacy
+        run: npm run privacy:check
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libimage-exiftool-perl ffmpeg
+      - if: runner.os == 'macOS'
+        run: brew install exiftool ffmpeg
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'exiftool.zip'
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/exiftool/exiftool-13.59_64.zip' -OutFile $zip
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec') { throw 'ExifTool archive checksum mismatch' }
+          $folder = Join-Path $env:RUNNER_TEMP 'exiftool'
+          Expand-Archive $zip -DestinationPath $folder
+          $exe = Get-ChildItem $folder -Recurse -Filter 'exiftool(-k).exe' | Select-Object -First 1
+          Rename-Item -LiteralPath $exe.FullName -NewName 'exiftool.exe'
+          $exe.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      - if: runner.os == 'Windows'
+        run: choco install ffmpeg --yes --no-progress
+      - name: Lint
+        run: npm run lint
+      - run: npm run typecheck
+      - name: Test
+        run: npm run test
+      - run: npm audit --audit-level=high
+      - name: Build
+        run: npm run build
+      - if: runner.os != 'Linux'
+        run: npm run test:wasm
+      - if: runner.os == 'Linux'
+        run: FFMPEG=ffmpeg npm run test:wasm
+      - if: runner.os == 'Linux'
+        name: Installed Chrome extension lifecycle
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error 'https://storage.googleapis.com/chrome-for-testing-public/155.0.8059.39/linux64/chrome-linux64.zip' -o "$RUNNER_TEMP/chrome-test.zip"
+          echo "55672d1f392fd3e7b7a08621b6e804e6bcb39d40cf155504abb74b3a021ea8ea  $RUNNER_TEMP/chrome-test.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/chrome-test.zip" -d "$RUNNER_TEMP/chrome-test"
+          CHROME_PATH="$RUNNER_TEMP/chrome-test/chrome-linux64/chrome" node scripts/test-browser.mjs
+      - if: runner.os == 'Linux'
+        run: node scripts/package.mjs
+      - if: runner.os == 'Linux'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: aula-photo-downloader-alpha
+          path: releases/*.zip
+          if-no-files-found: error
+  release-secrets:
+    needs: verify
+    uses: ./.github/workflows/secrets.yml
+    with:
+      artifact: aula-photo-downloader-alpha
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [version, secrets, verify, release-secrets]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-release
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: aula-photo-downloader-alpha
+          path: releases
+      - name: Publish checked version
+        run: node scripts/release.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+releases/
+coverage/
+.DS_Store
+*.zip
+*.log
+# Local credentials and private signing material must never enter source control.
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx

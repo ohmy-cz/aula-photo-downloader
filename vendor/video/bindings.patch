@@ -1,0 +1,276 @@
+--- a/build/ffmpeg-wasm.sh
++++ b/build/ffmpeg-wasm.sh
+@@ -31,8 +31,9 @@
+   -Wno-deprecated-declarations 
+   $LDFLAGS 
+   -sENVIRONMENT=worker
++  -sDYNAMIC_EXECUTION=0
++  -sMAXIMUM_MEMORY=1024MB
+   -sWASM_BIGINT                            # enable big int support
+-  -sUSE_SDL=2                              # use emscripten SDL2 lib port
+   -sSTACK_SIZE=5MB                         # increase stack size to support libopus
+   -sMODULARIZE                             # modularized to use as a library
+   ${FFMPEG_MT:+ -sINITIAL_MEMORY=1024MB}   # ALLOW_MEMORY_GROWTH is not recommended when using threads, thus we use a large initial memory
+@@ -41,7 +42,6 @@
+   -sEXPORT_NAME="$EXPORT_NAME"             # required in browser env, so that user can access this module from window object
+   -sEXPORTED_FUNCTIONS=$(node src/bind/ffmpeg/export.js) # exported functions
+   -sEXPORTED_RUNTIME_METHODS=$(node src/bind/ffmpeg/export-runtime.js) # exported built-in functions
+-  -lworkerfs.js
+   --pre-js src/bind/ffmpeg/bind.js        # extra bindings, contains most of the ffmpeg.wasm javascript code
+   # ffmpeg source code
+   src/fftools/cmdutils.c 
+--- a/build/ffmpeg.sh
++++ b/build/ffmpeg.sh
+@@ -30,4 +30,4 @@
+ )
+ 
+ emconfigure ./configure "${CONF_FLAGS[@]}" $@
+-emmake make -j
++emmake make -j2
+--- a/src/fftools/cmdutils.c
++++ b/src/fftools/cmdutils.c
+@@ -523,7 +523,7 @@
+     return o;
+ }
+ 
+-#define FLAGS (o->type == AV_OPT_TYPE_FLAGS && (arg[0]=='-' || arg[0]=='+')) ? AV_DICT_APPEND : 0
++#define FLAGS ((o->type == AV_OPT_TYPE_FLAGS && (arg[0]=='-' || arg[0]=='+')) ? AV_DICT_APPEND : 0)
+ int opt_default(void *optctx, const char *opt, const char *arg)
+ {
+     const AVOption *o;
+--- a/src/fftools/ffmpeg.c
++++ b/src/fftools/ffmpeg.c
+@@ -492,8 +492,9 @@
+         }
+         //Read it
+         if(nchars != 0) {
+-            read(0, &ch, 1);
+-            return ch;
++            if (read(0, &ch, 1) == 1)
++                return ch;
++            return 0;
+         }else{
+             return -1;
+         }
+@@ -1279,6 +1280,9 @@
+             av_log(NULL, AV_LOG_DEBUG, "Forced keyframe at time %f\n", pts_time);
+         }
+ 
++        if (ost->top_field_first >= 0)
++            in_picture->top_field_first = !!ost->top_field_first;
++
+         ret = encode_frame(of, ost, in_picture);
+         if (ret < 0)
+             exit_program(1);
+--- a/src/fftools/ffmpeg.h
++++ b/src/fftools/ffmpeg.h
+@@ -237,6 +237,9 @@
+     int        nb_autoscale;
+     SpecifierOpt *bits_per_raw_sample;
+     int        nb_bits_per_raw_sample;
++
++
++    int depth;
+ } OptionsContext;
+ 
+ typedef struct InputFilter {
+--- a/src/fftools/ffmpeg_opt.c
++++ b/src/fftools/ffmpeg_opt.c
+@@ -475,6 +475,8 @@
+             for (i = 0; i < o->nb_stream_maps; i++) {
+                 m = &o->stream_maps[i];
+                 if (file_idx == m->file_index &&
++                    m->stream_index >= 0 &&
++                    m->stream_index < input_files[m->file_index]->nb_streams &&
+                     check_stream_specifier(input_files[m->file_index]->ctx,
+                                            input_files[m->file_index]->ctx->streams[m->stream_index],
+                                            *p == ':' ? p + 1 : p) > 0)
+@@ -2048,6 +2050,7 @@
+         int channels = 0;
+         char *layout = NULL;
+         char *sample_fmt = NULL;
++        const char *apad = NULL;
+ 
+         MATCH_PER_STREAM_OPT(audio_channels, i, channels, oc, st);
+         if (channels) {
+@@ -2085,8 +2088,12 @@
+ 
+         MATCH_PER_STREAM_OPT(audio_sample_rate, i, audio_enc->sample_rate, oc, st);
+ 
+-        MATCH_PER_STREAM_OPT(apad, str, ost->apad, oc, st);
+-        ost->apad = av_strdup(ost->apad);
++        MATCH_PER_STREAM_OPT(apad, str, apad, oc, st);
++        if (apad) {
++            ost->apad = av_strdup(apad);
++            if (!ost->apad)
++                exit_program(1);
++        }
+ 
+         ost->avfilter = get_ost_filters(o, oc, ost);
+         if (!ost->avfilter)
+@@ -3256,7 +3263,13 @@
+     FILE *f=NULL;
+     char filename[1000], line[1000], tmp_line[1000];
+     const char *codec_name = NULL;
++    int depth = o->depth;
+ 
++    if (depth > 2) {
++        av_log(NULL, AV_LOG_ERROR, "too deep recursion\n");
++        return AVERROR(EINVAL);
++    }
++
+     tmp_line[0] = *opt;
+     tmp_line[1] = 0;
+     MATCH_PER_TYPE_OPT(codec_names, str, codec_name, NULL, tmp_line);
+@@ -3269,6 +3282,7 @@
+         exit_program(1);
+     }
+ 
++    o->depth ++;
+     while (fgets(line, sizeof(line), f)) {
+         char *key = tmp_line, *value, *endptr;
+ 
+@@ -3293,6 +3307,7 @@
+         }
+     }
+ 
++    o->depth = depth;
+     fclose(f);
+ 
+     return 0;
+--- a/src/fftools/ffplay.c
++++ b/src/fftools/ffplay.c
+@@ -1992,6 +1992,8 @@
+         goto end;
+ 
+     if (force_output_format) {
++        av_bprint_clear(&bp);
++        av_channel_layout_describe_bprint(&is->audio_tgt.ch_layout, &bp);
+         sample_rates   [0] = is->audio_tgt.freq;
+         if ((ret = av_opt_set_int(filt_asink, "all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)) < 0)
+             goto end;
+@@ -2356,12 +2358,13 @@
+         av_channel_layout_compare(&af->frame->ch_layout, &is->audio_src.ch_layout) ||
+         af->frame->sample_rate   != is->audio_src.freq           ||
+         (wanted_nb_samples       != af->frame->nb_samples && !is->swr_ctx)) {
++        int ret;
+         swr_free(&is->swr_ctx);
+-        swr_alloc_set_opts2(&is->swr_ctx,
++        ret = swr_alloc_set_opts2(&is->swr_ctx,
+                             &is->audio_tgt.ch_layout, is->audio_tgt.fmt, is->audio_tgt.freq,
+                             &af->frame->ch_layout, af->frame->format, af->frame->sample_rate,
+                             0, NULL);
+-        if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
++        if (ret < 0 || swr_init(is->swr_ctx) < 0) {
+             av_log(NULL, AV_LOG_ERROR,
+                    "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
+                     af->frame->sample_rate, av_get_sample_fmt_name(af->frame->format), af->frame->ch_layout.nb_channels,
+--- a/src/fftools/ffprobe.c
++++ b/src/fftools/ffprobe.c
+@@ -1948,12 +1948,14 @@
+     writer_print_string(w, k, pbuf.str, 0);    \
+ } while (0)
+ 
+-#define print_list_fmt(k, f, n, ...) do {       \
++#define print_list_fmt(k, f, n, m, ...) do {    \
+     av_bprint_clear(&pbuf);                     \
+     for (int idx = 0; idx < n; idx++) {         \
+-        if (idx > 0)                            \
+-            av_bprint_chars(&pbuf, ' ', 1);     \
+-        av_bprintf(&pbuf, f, __VA_ARGS__);      \
++        for (int idx2 = 0; idx2 < m; idx2++) {  \
++            if (idx > 0 || idx2 > 0)            \
++                av_bprint_chars(&pbuf, ' ', 1); \
++            av_bprintf(&pbuf, f, __VA_ARGS__);  \
++        }                                       \
+     }                                           \
+     writer_print_string(w, k, pbuf.str, 0);     \
+ } while (0)
+@@ -2064,7 +2066,7 @@
+             const AVDOVIReshapingCurve *curve = &mapping->curves[c];
+             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_COMPONENT);
+ 
+-            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, curve->pivots[idx]);
++            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, 1, curve->pivots[idx]);
+ 
+             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_PIECE_LIST);
+             for (int i = 0; i < curve->num_pivots - 1; i++) {
+@@ -2076,7 +2078,7 @@
+                     print_str("mapping_idc_name",   "polynomial");
+                     print_int("poly_order",         curve->poly_order[i]);
+                     print_list_fmt("poly_coef", "%"PRIi64,
+-                                   curve->poly_order[i] + 1,
++                                   curve->poly_order[i] + 1, 1,
+                                    curve->poly_coef[i][idx]);
+                     break;
+                 case AV_DOVI_MAPPING_MMR:
+@@ -2084,8 +2086,8 @@
+                     print_int("mmr_order",          curve->mmr_order[i]);
+                     print_int("mmr_constant",       curve->mmr_constant[i]);
+                     print_list_fmt("mmr_coef", "%"PRIi64,
+-                                   curve->mmr_order[i] * 7,
+-                                   curve->mmr_coef[i][0][idx]);
++                                   curve->mmr_order[i], 7,
++                                   curve->mmr_coef[i][idx][idx2]);
+                     break;
+                 default:
+                     print_str("mapping_idc_name",   "unknown");
+@@ -2123,15 +2125,15 @@
+         print_int("dm_metadata_id",         color->dm_metadata_id);
+         print_int("scene_refresh_flag",     color->scene_refresh_flag);
+         print_list_fmt("ycc_to_rgb_matrix", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix),
++                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix), 1,
+                        color->ycc_to_rgb_matrix[idx].num,
+                        color->ycc_to_rgb_matrix[idx].den);
+         print_list_fmt("ycc_to_rgb_offset", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset),
++                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset), 1,
+                        color->ycc_to_rgb_offset[idx].num,
+                        color->ycc_to_rgb_offset[idx].den);
+         print_list_fmt("rgb_to_lms_matrix", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix),
++                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix), 1,
+                        color->rgb_to_lms_matrix[idx].num,
+                        color->rgb_to_lms_matrix[idx].den);
+         print_int("signal_eotf",            color->signal_eotf);
+--- a/src/fftools/opt_common.c
++++ b/src/fftools/opt_common.c
+@@ -722,10 +722,13 @@
+     return 0;
+ }
+ 
+-static void print_codecs(int encoder)
++static int print_codecs(int encoder)
+ {
+     const AVCodecDescriptor **codecs;
+-    unsigned i, nb_codecs = get_codecs_sorted(&codecs);
++    int i, nb_codecs = get_codecs_sorted(&codecs);
++
++    if (nb_codecs < 0)
++        return nb_codecs;
+ 
+     printf("%s:\n"
+            " V..... = Video\n"
+@@ -759,18 +762,17 @@
+         }
+     }
+     av_free(codecs);
++    return 0;
+ }
+ 
+ int show_decoders(void *optctx, const char *opt, const char *arg)
+ {
+-    print_codecs(0);
+-    return 0;
++    return print_codecs(0);
+ }
+ 
+ int show_encoders(void *optctx, const char *opt, const char *arg)
+ {
+-    print_codecs(1);
+-    return 0;
++    return print_codecs(1);
+ }
+ 
+ int show_bsfs(void *optctx, const char *opt, const char *arg)
