@@ -1,10 +1,8 @@
 import type { DownloaderModel } from './downloader-model'
 import Close from '@mui/icons-material/Close'
-import DownloadOutlined from '@mui/icons-material/DownloadOutlined'
-import StopOutlined from '@mui/icons-material/StopOutlined'
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Divider from '@mui/material/Divider'
@@ -23,6 +21,7 @@ import { t } from '../i18n'
 import { BatchStatus } from './batch-status'
 import { Brand } from './brand'
 import { DateSelection } from './date-selection'
+import { TransferActions } from './transfer-actions'
 
 /** Declarative downloader view; privileged actions require a real browser gesture. */
 export const Downloader = ({
@@ -56,16 +55,33 @@ export const Downloader = ({
     >
       <Brand
         action={(
-          <Tooltip title={t('hide')}>
-            <IconButton
-              id="close"
-              aria-label={t('hide')}
-              onClick={close}
-              size="small"
-            >
-              <Close />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={0.5}>
+            <Tooltip title={t('settings')}>
+              <IconButton
+                id="settings"
+                aria-label={t('settings')}
+                size="small"
+                disabled={busy}
+                onClick={(event) => {
+                  if (event.isTrusted) {
+                    void model.openSettings()
+                  }
+                }}
+              >
+                <SettingsOutlined />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('hide')}>
+              <IconButton
+                id="close"
+                aria-label={t('hide')}
+                onClick={close}
+                size="small"
+              >
+                <Close />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         )}
       />
       <Divider />
@@ -133,28 +149,7 @@ export const Downloader = ({
           <Skeleton variant="rounded" height={8} aria-label={t('collecting')} />
         )}
         <BatchStatus model={model} />
-        <Button
-          id="toggle"
-          variant="contained"
-          size="large"
-          fullWidth
-          autoFocus
-          disabled={state.loading || !!controller?.signal.aborted}
-          color={busy ? 'error' : 'primary'}
-          startIcon={busy ? <StopOutlined /> : <DownloadOutlined />}
-          onClick={(event) => {
-            if (event.isTrusted) {
-              if (busy) {
-                model.stop()
-              }
-              else {
-                void model.start()
-              }
-            }
-          }}
-        >
-          {t(busy ? 'stop' : 'start')}
-        </Button>
+        <TransferActions model={model} />
       </Stack>
     </Card>
   )

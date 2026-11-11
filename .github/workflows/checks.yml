@@ -38,8 +38,10 @@ jobs:
         shell: pwsh
         run: |
           $zip = Join-Path $env:RUNNER_TEMP 'exiftool.zip'
-          Invoke-WebRequest 'https://downloads.sourceforge.net/project/exiftool/exiftool-13.59_64.zip' -OutFile $zip
-          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec') { throw 'ExifTool archive checksum mismatch' }
+          curl.exe --fail --location --retry 3 --silent --show-error 'https://downloads.sourceforge.net/project/exiftool/exiftool-13.59_64.zip' --output $zip
+          if ($LASTEXITCODE -ne 0) { throw 'ExifTool download failed' }
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne '44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec') { throw "ExifTool archive checksum mismatch: $actual" }
           $folder = Join-Path $env:RUNNER_TEMP 'exiftool'
           Expand-Archive $zip -DestinationPath $folder
           $exe = Get-ChildItem $folder -Recurse -Filter 'exiftool(-k).exe' | Select-Object -First 1

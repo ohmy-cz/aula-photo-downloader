@@ -46,11 +46,17 @@ UI verification includes keyboard opening/closing, focus return, Escape, small v
 
 The UI uses React 19 and Material UI 9 with path imports, a shared theme, semantic labels, system fonts without network requests, and React Hooks lint rules. Follow the [MUI MCP setup](https://mui.com/material-ui/getting-started/mcp/) and [shadow DOM integration](https://mui.com/material-ui/customization/shadow-dom/) when changing it. The official `@mui/mcp` documentation server was used during migration; it is a development tool, never bundled in the extension.
 
-Opening the extension on a selected album immediately injects the downloader and records tab activation. The optional child-name export setting lives in the downloader, defaults off and is bound to the run. Content actions require trusted clicks; only the originating tab may act on a run. Downloads use leased processed blobs, never unrestricted remote URLs or fallback copies.
+Opening the extension on a selected album immediately injects the downloader and records tab activation. The child-name export setting lives in the downloader, defaults on and is bound to the run. An explicit opt-out is retained across album switches on the same page. Content actions require trusted clicks; only the originating tab may act on a run. Downloads use leased processed blobs, never unrestricted remote URLs or fallback copies.
 
 Run `npm run demo` and open `http://127.0.0.1:8765/?newerApi=1&fresh=api-fallback` to simulate retirement of the implemented API and inspect the warning without contacting Aula or changing real download history.
 
 `/popup-preview?fail=1` renders the actual automatic-launch popup with local Chrome mocks. Behavioral tests cover the two screens, all four languages, checkpoint/DST behavior and trusted-action boundaries. Release workflow checks additionally exercise version gating, published-tag conflicts and safe draft/rerun behavior without publishing test releases.
+
+## Immich
+
+The integration follows the released Immich v3.4.1 OpenAPI contract. Standard extension options request access to the configured server only; API keys stay in trusted local storage. Required key permissions are `user.read`, `album.read`, `asset.read`, `asset.upload` and `albumAsset.create`. `immich/client.ts` validates consumed response fields and uses native multipart upload; uploads run in the offscreen document so service-worker suspension does not interrupt them. Each connection/album has a separate checkpoint. The last album choice persists locally; missing choices fall back to the newest writable album.
+
+Imports reuse local metadata processing without Chrome download pacing. Before collection, search the selected album for its newest non-trashed image by `fileCreatedAt`; silently filter only strictly older photos, retaining equal timestamps, videos and files without a capture plan for normal validation. Verify upload, duplicate handling and album assignment with synthetic data when changing the API contract. Never use a real account/key or live media in tests.
 
 ## Processing components
 

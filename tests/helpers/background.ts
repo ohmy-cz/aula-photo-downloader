@@ -149,6 +149,11 @@ export const api = {
 
         return Promise.resolve()
       },
+      remove: async (keys: string | string[]) => {
+        for (const key of Array.isArray(keys) ? keys : [keys]) {
+          Reflect.deleteProperty(store, key)
+        }
+      },
       clear: async () => {
         store = {}
 

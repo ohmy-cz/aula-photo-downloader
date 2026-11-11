@@ -4,7 +4,7 @@ import { CONFIG } from '../config'
 import { AppError, publicErrorCode } from '../errors'
 import { t } from './i18n'
 
-/** The background owns downloads, so closing the panel does not lose an active job. */
+/** The background owns operation receipts, so closing the panel does not lose an active job. */
 export const request = async <T>(message: Request): Promise<T> => {
   const response = await chrome.runtime.sendMessage<
     unknown,
@@ -28,8 +28,10 @@ export const request = async <T>(message: Request): Promise<T> => {
 export const waitForOperation = async (
   message: Request,
   timeoutMessage: string,
-  signal?: AbortSignal,
+  options: { signal?: AbortSignal, pollMs?: number } = {},
 ): Promise<Exclude<ProcessResult, { mode: 'working' }>> => {
+  const { signal, pollMs = CONFIG.timing.pollMs } = options
+
   const started = Date.now()
 
   let result = await request<ProcessResult>(message)
@@ -47,7 +49,7 @@ export const waitForOperation = async (
 
     const operation = result.operation
 
-    await sleep(CONFIG.timing.pollMs, signal)
+    await sleep(pollMs, signal)
 
     signal?.throwIfAborted()
 

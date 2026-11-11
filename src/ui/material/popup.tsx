@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { useEffect, useState } from 'react'
 import { isAlbumPage } from '../../api/gallery'
 import { CONFIG } from '../../config'
+import { request } from '../client'
 import { t } from '../i18n'
 import { mountExtensionPage } from './extension-page'
 import { useTrustedAction } from './use-trusted-action'
@@ -118,6 +119,18 @@ const Popup = () => {
         </Button>
       </Box>
       <Box>
+        <Button
+          id="open-settings"
+          fullWidth
+          disabled={busy || loading}
+          onClick={(event) => {
+            void run(event, async () => {
+              await request({ type: 'open-settings' })
+            })
+          }}
+        >
+          {t('settings')}
+        </Button>
         <Button
           id="clear-history"
           variant="outlined"

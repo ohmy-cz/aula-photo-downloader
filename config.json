@@ -20,13 +20,15 @@
     "apiRequestMs": 30000,
     "mediaFetchMs": 60000,
     "processingMs": 120000,
-    "operationMs": 360000,
+    "operationMs": 600000,
     "pollMs": 1000,
     "galleryRefreshRetryMs": 250,
     "downloadGapMs": 1000,
     "pageDelayMinMs": 1000,
     "pageDelayMaxMs": 5000,
-    "blobLeaseMs": 600000
+    "blobLeaseMs": 600000,
+    "immichUploadMs": 300000,
+    "immichPollMs": 100
   },
   "limits": {
     "mediaBytes": 268435456,
@@ -40,7 +42,9 @@
     "collectionItems": 50000,
     "collectionPages": 10000,
     "collectionBytes": 33554432,
-    "galleryRefreshAttempts": 3
+    "galleryRefreshAttempts": 3,
+    "immichKeyCharacters": 1024,
+    "immichAlbums": 10000
   },
   "archive": {
     "rootFolder": "aula-photo-downloader",
@@ -62,10 +66,24 @@
     "wasmAsset": "assets/exiftool.wasm",
     "ffmpegCoreAsset": "assets/ffmpeg-core.js",
     "ffmpegWasmAsset": "assets/ffmpeg-core.wasm",
-    "privacyPage": "privacy.html"
+    "privacyPage": "privacy.html",
+    "optionsPage": "options.html",
+    "optionsScript": "ui/material/options.js"
   },
   "i18n": {
     "defaultLanguage": "da",
-    "supportedLanguages": ["cs", "da", "en", "es"]
+    "supportedLanguages": [
+      "cs",
+      "da",
+      "en",
+      "es"
+    ]
+  },
+  "immich": {
+    "storageKey": "aulaPhotoDownloaderImmich",
+    "hostPatterns": [
+      "https://*/*",
+      "http://*/*"
+    ]
   }
 }

@@ -1,7 +1,9 @@
+import type { ImmichConnection } from '../immich/contracts'
 import type { ProcessedMedia } from '../metadata/formats'
 import type { Job, WorkerResult } from '../types'
 import { CONFIG } from '../config'
 import { AppError, errorCode } from '../errors'
+import { importProcessed } from '../immich/client'
 import {
   isMediaMime,
   mediaBlob,
@@ -96,10 +98,10 @@ const processInWorker = async (
 }
 
 /**
- * Fetch and process one original, then lease its blob until download completion.
- * Report public error codes without downloading unprocessed copies.
+ * Fetch and process one original, then upload it or lease its blob for download.
+ * Imports are acknowledged only after album assignment; failures never create fallback downloads.
  */
-const run = async (job: Job): Promise<void> => {
+const run = async (job: Job, transfer: { connection: ImmichConnection, albumId: string } | null): Promise<void> => {
   try {
     if (job.media.size !== null && job.media.size > CONFIG.limits.mediaBytes) {
       throw new AppError('media-size')
@@ -112,6 +114,14 @@ const run = async (job: Job): Promise<void> => {
     }
 
     const output = await processInWorker(job, bytes)
+
+    if (transfer) {
+      await importProcessed(transfer.connection, transfer.albumId, job, output)
+
+      await chrome.runtime.sendMessage({ type: 'worker-ready', id: job.id, imported: true })
+
+      return
+    }
 
     const url = URL.createObjectURL(mediaBlob(output))
 
@@ -201,6 +211,6 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
 
     respond({ ok: true })
 
-    void run(job)
+    void run(job, message.transfer as { connection: ImmichConnection, albumId: string } | null)
   }
 })

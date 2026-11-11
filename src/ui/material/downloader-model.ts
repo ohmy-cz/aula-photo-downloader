@@ -1,3 +1,4 @@
+import type { ImmichDestination } from '../../immich/contracts'
 import type { Summary } from '../../types'
 import type { BatchProgress } from './download-batch'
 import { currentGallery, galleryKey } from '../../api/gallery'
@@ -20,6 +21,7 @@ interface Dates {
 interface DownloaderState {
   dates: Dates
   childTags: boolean
+  immichConnected: boolean
   loading: boolean
   controller: AbortController | null
   status: string
@@ -42,7 +44,8 @@ const initialGalleryState = (): Omit<DownloaderState, 'controller'> => {
       cutoff: today,
     },
     loading: true,
-    childTags: false,
+    childTags: true,
+    immichConnected: false,
     status: '',
     error: false,
     apiVersion: CONFIG.aula.apiVersion,
@@ -63,6 +66,8 @@ export const createDownloaderModel = () => {
   let refreshGeneration = 0
 
   let navigationPending = false
+
+  let manualDates = false
 
   const status = (text: string, error = false) => {
     if (!navigationPending) {
@@ -90,15 +95,15 @@ export const createDownloaderModel = () => {
   }
 
   /** Read only this gallery/filter's last completed import date. */
-  const refreshSummary = async () => {
+  const refreshSummary = async (destination?: ImmichDestination | null) => {
     const selectedKey = key
 
     const generation = refreshGeneration
 
-    const summary = await request<Summary>({ type: 'gallery', key: selectedKey })
+    const summary = await request<Summary>({ type: 'gallery', key: selectedKey, ...(destination !== undefined ? { destination } : {}) })
 
     if (generation === refreshGeneration && selectedKey === key) {
-      store.update({ summary })
+      store.update({ summary, immichConnected: summary.immichConnected ?? false })
     }
 
     return summary
@@ -160,6 +165,8 @@ export const createDownloaderModel = () => {
     }
 
     if (reset || changed) {
+      manualDates = false
+
       setDates({
         today: true,
         cutoff: summary.checkpoint ?? archiveZoneDay(),
@@ -228,8 +235,8 @@ export const createDownloaderModel = () => {
     void run()
   }
 
-  /** Snapshot inclusive bounds at submission; Today uses Copenhagen even across midnight and DST. */
-  const start = async () => {
+  /** Snapshot destination-specific bounds at submission; preserve explicit dates, and resolve Today in Copenhagen across midnight/DST. */
+  const start = async (destination: ImmichDestination | null = null, photoCutoff: string | null = null) => {
     if (isDownloading() || store.getSnapshot().loading) {
       return
     }
@@ -244,6 +251,7 @@ export const createDownloaderModel = () => {
       totalKnown: false,
       completed: 0,
       failures: 0,
+      importing: destination !== null,
     }
 
     const progress = (patch: Partial<DownloaderState> = {}) => {
@@ -269,6 +277,12 @@ export const createDownloaderModel = () => {
         return
       }
 
+      const summary = await refreshSummary(destination)
+
+      if (!manualDates) {
+        setDates({ cutoff: summary.checkpoint ?? archiveZoneDay(), all: summary.checkpoint === null })
+      }
+
       const dates = store.getSnapshot().dates
 
       const first = dates.today ? archiveZoneDay() : dates.latest
@@ -285,6 +299,8 @@ export const createDownloaderModel = () => {
         url,
         ...bounds,
         childTags: store.getSnapshot().childTags,
+        destination,
+        photoCutoff,
         signal: active.signal,
         batch,
         started,
@@ -305,13 +321,13 @@ export const createDownloaderModel = () => {
     }
     catch (error) {
       status(
-        active.signal.aborted ? t('stoppedSaved') : translateError(error),
+        active.signal.aborted ? t(destination ? 'importStopped' : 'stoppedSaved') : translateError(error),
         !active.signal.aborted,
       )
     }
     finally {
       if (!navigationPending) {
-        await refreshSummary().catch(() => undefined)
+        await refreshSummary(destination).catch(() => undefined)
       }
 
       if (navigationPending) {
@@ -342,7 +358,7 @@ export const createDownloaderModel = () => {
 
       store.update({ controller })
 
-      status(t('stopping'))
+      status(t(store.getSnapshot().batch?.importing ? 'importStopping' : 'stopping'))
     }
   }
 
@@ -351,6 +367,19 @@ export const createDownloaderModel = () => {
     refresh,
     start,
     stop,
+    openSettings: async () => {
+      try {
+        await request({ type: 'open-settings' })
+      }
+      catch (error) {
+        status(translateError(error), true)
+      }
+    },
+    refreshConnection: () => {
+      if (!isDownloading() && key) {
+        void refreshSummary().catch(() => undefined)
+      }
+    },
     setChildTags: (childTags: boolean) => {
       if (!isDownloading()) {
         store.update({ childTags })
@@ -359,6 +388,8 @@ export const createDownloaderModel = () => {
     /** Ignore edits while downloading; Today always resolves in the archive timezone. */
     setDates: (patch: Partial<Dates>) => {
       if (!isDownloading()) {
+        manualDates = true
+
         setDates(patch)
       }
     },
@@ -376,7 +407,9 @@ export const createDownloaderModel = () => {
 
       selection = undefined
 
-      store.update(initialGalleryState())
+      manualDates = false
+
+      store.update({ ...initialGalleryState(), childTags: store.getSnapshot().childTags, immichConnected: store.getSnapshot().immichConnected })
 
       if (!navigationPending) {
         refresh()

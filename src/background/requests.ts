@@ -4,6 +4,8 @@ import { CONFIG } from '../config'
 import { processMedia } from '../downloads/coordinator'
 import { operationStatus } from '../downloads/operations'
 import { AppError } from '../errors'
+import { Destination } from '../immich/contracts'
+import { connected, destinationKey, loadConnection, requireConnection } from '../immich/settings'
 import { validatedMedia } from '../messages'
 import { archiveZoneDay } from '../metadata/dates'
 import { object, safeName, validateKey, validDay } from '../security'
@@ -27,7 +29,24 @@ export const handlePageRequest = async (
   if (message.type === 'gallery') {
     validateKey(message.key)
 
-    return { checkpoint: state.checkpoints[message.key] ?? null }
+    const connection = await loadConnection()
+
+    const ready = await connected(connection)
+
+    const destination = Object.hasOwn(message, 'destination')
+      ? Destination.nullable().parse(message.destination)
+      : ready && connection?.lastAlbumId != null ? { connectionId: connection.id, albumId: connection.lastAlbumId } : null
+
+    if (destination) {
+      await requireConnection(destination)
+    }
+
+    const key = await destinationKey(message.key, destination)
+
+    return {
+      checkpoint: !Object.hasOwn(message, 'destination') && ready && connection?.lastAlbumId == null ? null : state.checkpoints[key] ?? null,
+      ...(connection ? { immichConnected: ready } : {}),
+    }
   }
 
   if (message.type === 'begin') {
@@ -71,10 +90,20 @@ export const handlePageRequest = async (
       throw new AppError('cutoff-invalid')
     }
 
+    const destination = message.destination == null ? null : Destination.parse(message.destination)
+
+    if (destination) {
+      const connection = await requireConnection(destination)
+
+      if (connection.lastAlbumId !== destination.albumId) {
+        throw new AppError('immich-album')
+      }
+    }
+
     state.run = {
       id: crypto.randomUUID(),
       tabId,
-      key: message.key,
+      key: await destinationKey(message.key, destination),
       folder: safeName(name),
       started: message.started,
       cutoff: message.cutoff,
@@ -82,6 +111,7 @@ export const handlePageRequest = async (
       expected,
       completed: 0,
       childTags: z.boolean().parse(message.childTags),
+      destination,
       failed: false,
       cancelled: false,
     }

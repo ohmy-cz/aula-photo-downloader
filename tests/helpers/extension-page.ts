@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { build } from 'esbuild'
 import { required } from '../../src/required'
 import { until } from './panel'
-import { createDom, trustedEvents } from './react-dom'
+import { changeInput, createDom, trustedEvents } from './react-dom'
 
 /** Run a packaged Material UI entrypoint in its own extension-like document, without global browser mocks. */
 export const extensionPage = async (
-  page: 'popup',
+  page: 'popup' | 'options',
   chrome: object,
   options: {
     languages?: string[]
@@ -49,7 +49,7 @@ export const extensionPage = async (
 
   window.eval(required(result.outputFiles[0]).text)
 
-  await until(() => !!window.document.getElementById('clear-history'))
+  await until(() => !!window.document.getElementById(page === 'popup' ? 'clear-history' : 'immich-connect'))
 
   const element = (id: string) => required(window.document.getElementById(id))
 
@@ -58,6 +58,8 @@ export const extensionPage = async (
     window,
     element,
     click: async (id: string) => click(element(id)),
+    submit: async () => click(required(window.document.querySelector('form')), 'submit'),
+    change: async (id: string, value: string) => changeInput(window, element(id) as HTMLInputElement, value),
     closed: () => closed,
   }
 }

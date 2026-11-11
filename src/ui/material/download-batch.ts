@@ -1,3 +1,4 @@
+import type { ImmichDestination } from '../../immich/contracts'
 import type { Summary } from '../../types'
 import { collectMediaQueue } from '../../api'
 import { CONFIG } from '../../config'
@@ -10,15 +11,18 @@ export interface BatchProgress {
   totalKnown: boolean
   completed: number
   failures: number
+  importing: boolean
 }
 
-/** Collect before beginning a run; Stop awaits its current receipt, and partial runs never advance dates. */
+/** Collect before beginning a destination-bound run; Stop awaits the current receipt, and partial runs never advance dates. */
 export const downloadBatch = async (options: {
   key: string
   url: string
   cutoff: string | null
   until: string
   childTags: boolean
+  destination: ImmichDestination | null
+  photoCutoff: string | null
   signal: AbortSignal
   batch: BatchProgress
   started: string
@@ -36,6 +40,7 @@ export const downloadBatch = async (options: {
     signal,
     cutoff: options.cutoff,
     until: options.until,
+    photoCutoff: options.photoCutoff,
     onApiVersion: options.apiVersion,
     onAlbum: (value) => {
       name = value
@@ -58,6 +63,7 @@ export const downloadBatch = async (options: {
     until: options.until,
     expected: queue.length,
     childTags: options.childTags,
+    destination: options.destination,
   })
 
   const cancel = () => {
@@ -71,7 +77,7 @@ export const downloadBatch = async (options: {
 
     batch.totalKnown = true
 
-    options.status(t('processing'))
+    options.status(t(options.destination ? 'importProcessing' : 'processing'))
 
     options.progress()
 
@@ -88,6 +94,7 @@ export const downloadBatch = async (options: {
         await waitForOperation(
           { type: 'process', runId, media },
           t('errors.operation-timeout'),
+          { pollMs: options.destination ? CONFIG.timing.immichPollMs : CONFIG.timing.pollMs },
         )
 
         batch.completed++
@@ -122,13 +129,13 @@ export const downloadBatch = async (options: {
   if (!batch.failures && !signal.aborted) {
     batch.phase = 'finished'
 
-    options.status(t('finishedReady'))
+    options.status(t(options.destination ? 'importFinished' : 'finishedReady'))
   }
   else {
     options.status(
       signal.aborted
-        ? t('stoppedSaved')
-        : t('retry', { count: batch.failures }),
+        ? t(options.destination ? 'importStopped' : 'stoppedSaved')
+        : t(options.destination ? 'importRetry' : 'retry', { count: batch.failures }),
       !signal.aborted,
     )
   }

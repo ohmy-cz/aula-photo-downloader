@@ -3,6 +3,7 @@ import { CONFIG, ROOT_FOLDER } from './config'
 import { handleWorkerReady } from './downloads/coordinator'
 import { finalizeDownload, reconcilePending } from './downloads/receipts'
 import { AppError, errorCode } from './errors'
+import { handleImmichRequest } from './immich/requests'
 import { isAulaSender, isOffscreenSender } from './messages'
 import { closeIdleOffscreen } from './runtime/offscreen-client'
 import { object } from './security'
@@ -40,7 +41,9 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
     = !sender.tab
       && sender.url === chrome.runtime.getURL(CONFIG.browser.popupPage)
 
-  if (!offscreen && !popup && !isAulaSender(sender)) {
+  const settings = sender.url === chrome.runtime.getURL(CONFIG.browser.optionsPage)
+
+  if (!offscreen && !popup && !settings && !isAulaSender(sender)) {
     return
   }
 
@@ -61,6 +64,16 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
 
     await reconcilePending(state)
 
+    if (popup && message.type === 'open-settings') {
+      await chrome.runtime.openOptionsPage()
+
+      return { ok: true }
+    }
+
+    if (settings && String(message.type).startsWith('immich-')) {
+      return handleImmichRequest(state, message, true)
+    }
+
     if (popup && message.type === 'clear-history') {
       const downloads = await chrome.downloads.search({ state: 'in_progress' })
 
@@ -79,7 +92,8 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
     if (
       offscreen
       || popup
-      || !['gallery', 'begin', 'process', 'status', 'cancel', 'finish'].includes(
+      || settings
+      || !['gallery', 'begin', 'process', 'status', 'cancel', 'finish', 'open-settings', 'immich-albums', 'immich-select'].includes(
         String(message.type),
       )
     ) {
@@ -96,6 +110,16 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
 
     if ((await chrome.storage.session.get(slot))[slot] !== true) {
       throw new AppError('activation-required')
+    }
+
+    if (message.type === 'open-settings') {
+      await chrome.runtime.openOptionsPage()
+
+      return { ok: true }
+    }
+
+    if (message.type === 'immich-albums' || message.type === 'immich-select') {
+      return handleImmichRequest(state, message, false)
     }
 
     return handlePageRequest(state, message, tabId)

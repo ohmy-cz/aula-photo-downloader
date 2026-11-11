@@ -42,9 +42,11 @@ export const extensionManifest = (source, settings) => ({
   version: packageVersion,
   minimum_chrome_version: String(settings.browser.minimumChromeVersion),
   host_permissions: [`${settings.aula.mediaOrigin}/*`],
+  optional_host_permissions: settings.immich.hostPatterns,
   action: { ...source.action, default_popup: settings.browser.popupPage },
+  options_ui: { page: settings.browser.optionsPage, open_in_tab: true },
   content_security_policy: {
-    extension_pages: `script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' ${settings.aula.mediaOrigin}; worker-src 'self';`,
+    extension_pages: `script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' ${settings.aula.mediaOrigin} ${[...new Set(settings.immich.hostPatterns.map(pattern => new URL(pattern).protocol))].join(' ')}; worker-src 'self';`,
   },
 })
 
@@ -63,6 +65,7 @@ export const buildExtension = async (settings, directory, documents = true) => {
 
   for (const [page, script] of [
     [settings.browser.popupPage, settings.browser.popupScript],
+    [settings.browser.optionsPage, settings.browser.optionsScript],
   ]) {
     const markup = await readFile(join('static', page), 'utf8')
 
@@ -108,6 +111,10 @@ export const buildExtension = async (settings, directory, documents = true) => {
       {
         in: 'src/ui/material/popup.tsx',
         out: settings.browser.popupScript.replace(/\.js$/, ''),
+      },
+      {
+        in: 'src/ui/material/options.tsx',
+        out: settings.browser.optionsScript.replace(/\.js$/, ''),
       },
       { in: 'src/runtime/offscreen.ts', out: 'runtime/offscreen' },
       {

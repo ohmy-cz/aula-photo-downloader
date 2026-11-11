@@ -3,6 +3,7 @@ import type { State } from '../types'
 import { z } from 'zod'
 import { CONFIG, STORAGE_KEY } from '../config'
 import { AppError, ERROR_MESSAGES } from '../errors'
+import { Destination } from '../immich/contracts'
 import { validatedMedia } from '../messages'
 import { validDay } from '../security'
 import { GalleryKey, PositiveId, StoredFilename } from '../validation'
@@ -43,13 +44,14 @@ const RunInput = z
     expected: z.number().int().min(0).max(CONFIG.limits.collectionItems),
     completed: z.number().int().min(0),
     childTags: z.boolean(),
+    destination: Destination.nullable(),
     failed: z.boolean(),
     cancelled: z.boolean(),
     operation: z
       .object({
         jobId: z.uuid(),
         mediaId: PositiveId,
-        result: z.literal('processed').optional(),
+        result: z.enum(['processed', 'imported']).optional(),
         error: z
           .custom<ErrorCode>(
             value =>
@@ -99,7 +101,7 @@ export const loadHistory = async (): Promise<State> => {
   const parsed = History.safeParse(stored[STORAGE_KEY])
 
   if (!parsed.success) {
-    await chrome.storage.local.clear()
+    await chrome.storage.local.remove(Object.keys(stored).filter(key => key !== CONFIG.immich.storageKey))
 
     const session = await chrome.storage.session.get(null)
 
@@ -166,7 +168,7 @@ export const saveCheckpoint = async (state: State): Promise<void> => {
 
 /** Clear extension-owned state after the background has excluded active work; keep downloaded files. */
 export const clearHistory = async (): Promise<void> => {
-  await chrome.storage.local.clear()
+  await chrome.storage.local.remove(STORAGE_KEY)
 
   await chrome.storage.session.clear()
 }

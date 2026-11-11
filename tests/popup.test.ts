@@ -47,6 +47,8 @@ void test('Opening an album activates and injects the downloader automatically, 
 
   await until(() => injected === 1)
 
+  await until(() => view.window.document.querySelector('h2')?.textContent === en.popupReadyHeading)
+
   assert.equal(view.window.document.querySelector('h2')?.textContent, en.popupReadyHeading)
 
   assert.equal(view.element('message').textContent, en.popupReadyMessage)

@@ -23,7 +23,7 @@ export const createDom = (...options: ConstructorParameters<typeof JSDOM>) => {
 
 /** Capture delegated bubble listeners so tests can model a trusted gesture without weakening production guards. */
 export const trustedEvents = (window: JSDOM['window']) => {
-  const listeners = new WeakMap<EventTarget, EventListener[]>()
+  const listeners = new WeakMap<EventTarget, Map<string, EventListener[]>>()
 
   const add = required(
     Object.getOwnPropertyDescriptor(
@@ -39,23 +39,27 @@ export const trustedEvents = (window: JSDOM['window']) => {
     options,
   ) {
     if (
-      type === 'click'
+      ['click', 'submit'].includes(type)
       && typeof listener === 'function'
       && options !== true
       && !(typeof options === 'object' && options.capture)
     ) {
-      listeners.set(this, [...(listeners.get(this) ?? []), listener])
+      const events = listeners.get(this) ?? new Map<string, EventListener[]>()
+
+      events.set(type, [...(events.get(type) ?? []), listener])
+
+      listeners.set(this, events)
     }
 
     add.call(this, type, listener, options)
   }
 
-  return async (target: HTMLElement) => {
+  return async (target: HTMLElement, type = 'click') => {
     if ((target as HTMLButtonElement).disabled) {
       return
     }
 
-    const native = new window.MouseEvent('click', {
+    const native = new window.MouseEvent(type, {
       bubbles: true,
       composed: true,
     })
@@ -80,7 +84,7 @@ export const trustedEvents = (window: JSDOM['window']) => {
     })
 
     for (let node: Node | null = target; node; node = node.parentNode) {
-      for (const listener of listeners.get(node) ?? []) {
+      for (const listener of listeners.get(node)?.get(type) ?? []) {
         listener.call(node, event)
       }
     }

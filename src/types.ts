@@ -1,3 +1,5 @@
+import type { ImmichDestination } from './immich/contracts'
+
 export interface Capture {
   day: string
   time: string
@@ -49,13 +51,14 @@ export interface Run {
   expected: number
   completed: number
   childTags: boolean
+  destination: ImmichDestination | null
   failed: boolean
   cancelled: boolean
   operation?: {
     jobId: string
     mediaId: number
     pending?: Pending
-    result?: 'processed'
+    result?: 'processed' | 'imported'
     error?: import('./errors').ErrorCode
   }
 }
@@ -68,10 +71,11 @@ export interface State {
 
 export interface Summary {
   checkpoint: string | null
+  immichConnected?: boolean
 }
 
 export type Request
-  = | { type: 'gallery', key: string }
+  = | { type: 'gallery', key: string, destination?: ImmichDestination | null }
     | {
       type: 'begin'
       key: string
@@ -81,14 +85,19 @@ export type Request
       until: string
       expected: number
       childTags: boolean
+      destination?: ImmichDestination | null
     }
     | { type: 'process', runId: string, media: Media }
     | { type: 'status', operation: Operation }
     | { type: 'cancel' | 'finish', runId: string }
+    | { type: 'open-settings' | 'immich-status' | 'immich-disconnect' | 'immich-albums' }
+    | { type: 'immich-connect', server: string, apiKey: string }
+    | { type: 'immich-select', destination: ImmichDestination }
 
 export type ProcessResult
   = | { mode: 'working', operation: Operation }
     | { mode: 'processed' }
+    | { mode: 'imported' }
 
 export interface WorkerResult {
   id: string

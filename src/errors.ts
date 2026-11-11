@@ -43,6 +43,13 @@ export const ERROR_MESSAGES = {
     'The original could not be fetched. Refresh the gallery and retry.',
   'media-timeout': 'Browser processing timed out. No file was downloaded.',
   'operation': 'Could not finish this operation. Check downloads and retry.',
+  'immich-config': 'Connect to Immich in extension settings first.',
+  'immich-permission': 'Allow access to the selected Immich server to connect.',
+  'immich-auth': 'Immich rejected the API key or its permissions. Check extension settings.',
+  'immich-unavailable': 'Could not reach Immich. Check the server and try again.',
+  'immich-contract': 'Immich returned an unsupported response. Update the extension.',
+  'immich-album': 'Immich could not add the file to the selected album. Check album access and retry.',
+
 } as const
 
 export type ErrorCode = keyof typeof ERROR_MESSAGES

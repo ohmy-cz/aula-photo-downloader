@@ -40,6 +40,14 @@ These instructions apply to the entire Aula Photo Downloader repository.
 - Continue validating current data and recovering jobs within the current version.
   Aula API version probing is a separate feature and remains supported.
 
+## Immich API
+
+- Keep the Immich integration current with the latest released official Immich API.
+  Before changing it, check the official API documentation and matching release's
+  OpenAPI schema; update consumed DTO validation and documented API support
+  together. Do not assume an SDK/package version describes
+  the server contract or copy credentials, album data or media into test fixtures.
+
 ## Generated and user files
 
 - Edit maintained sources, not generated files in `dist/`.

@@ -180,6 +180,7 @@ export const collectMediaQueue = async (
   value: string,
   options: Omit<Parameters<typeof collect>[1], 'onMedia'> & {
     onCollected: (count: number) => void
+    photoCutoff?: string | null
   },
 ): Promise<Media[]> => {
   const media: Media[] = []
@@ -189,6 +190,10 @@ export const collectMediaQueue = async (
   await collect(value, {
     ...options,
     onMedia: (item) => {
+      if (options.photoCutoff != null && item.kind === 'photo' && item.capture && Date.parse(`${item.capture.day}T${item.capture.time}${item.capture.offset}`) < Date.parse(options.photoCutoff)) {
+        return
+      }
+
       bytes += new TextEncoder().encode(JSON.stringify(item)).byteLength
 
       if (bytes > CONFIG.limits.collectionBytes) {

@@ -1,6 +1,7 @@
 import type { Media, ProcessResult, State } from '../types'
 import { CONFIG, ROOT_FOLDER } from '../config'
-import { AppError, publicErrorCode } from '../errors'
+import { AppError, errorCode, publicErrorCode } from '../errors'
+import { requireConnection } from '../immich/settings'
 import { ensureOffscreenDocument } from '../runtime/offscreen-client'
 import { saveRun } from '../storage/repository'
 import { download } from './browser'
@@ -54,20 +55,24 @@ export const processMedia = async (
     const reply = await chrome.runtime.sendMessage<
       unknown,
       { ok?: boolean } | undefined
-    >({ type: 'offscreen-start', job })
+    >({
+      type: 'offscreen-start',
+      job,
+      transfer: run.destination ? { connection: await requireConnection(run.destination), albumId: run.destination.albumId } : null,
+    })
 
     if (!reply?.ok) {
       throw new AppError('worker-busy')
     }
   }
-  catch {
-    await failOperation(state, 'worker-unavailable')
+  catch (error) {
+    await failOperation(state, errorCode(error) === 'operation' ? 'worker-unavailable' : errorCode(error))
   }
 
   return operationStatus(run)
 }
 
-/** Persist the local blob before Chrome's filename event can fire; failed processing never downloads originals. */
+/** Accept confirmed imports or persist a local download blob before Chrome's filename event; failures never download originals. */
 export const handleWorkerReady = async (
   state: State,
   message: Record<string, unknown>,
@@ -88,6 +93,28 @@ export const handleWorkerReady = async (
   }
 
   const failed = Boolean(message.error)
+
+  if (run.destination) {
+    if (failed || message.imported !== true) {
+      await failOperation(state, failed ? publicErrorCode(message.error) : 'immich-contract')
+
+      return { ok: false }
+    }
+
+    operation.result = 'imported'
+
+    delete operation.pending
+
+    run.completed++
+
+    if (run.cancelled && !await chrome.tabs.get(run.tabId).catch(() => undefined)) {
+      delete state.run
+    }
+
+    await saveRun(state)
+
+    return { ok: true }
+  }
 
   if (
     failed

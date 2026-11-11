@@ -71,6 +71,8 @@ const mount = () => {
 
   window.addEventListener('hashchange', model.navigate)
 
+  window.addEventListener('focus', model.refreshConnection)
+
   createRoot(container).render(
     <UiTheme>
       <Downloader model={model} close={close} />

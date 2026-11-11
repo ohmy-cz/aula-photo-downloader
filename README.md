@@ -16,7 +16,7 @@ Hence the __Aula Photo Downloader__.
 This nifty Chrome plugin allows you with two clicks to download the photos you have access to, tagged with the date/time shown in Aula; additionaly it tags the people in the photos in those files too for further taxonomy.
 
 ## Privacy considerations
-**Photo tagging happens entirely on your device. This extension never uploads your photos or sends them off your computer.** No telemetrics are sent anywhere. Nothing leaves your computer.
+**Photo tagging happens entirely on your device. Photos stay on your computer unless you choose to import them to your configured Immich server.** No telemetrics are sent anywhere.
 Effectively, this plugin can *only* "see" what you see on your screen; it only works with the data you had been granted access to and "glues" those on the files you were given the right to download. no witchcraft here. This plugin is read-only in relation to Aula.
 
 ## Install
@@ -41,6 +41,7 @@ Requires desktop Chrome 117 or newer.
 
 ## Design choices
 
+- **Optional Immich import.** Connect Immich in the extension's Settings using an API key with the permissions shown there (Immich API v3.4.1). Import becomes the primary action, with a local download link underneath. The last selected Immich album is remembered across browser sessions; first use selects the newest writable album. Imports have no artificial pause between files and silently skip photos older than the destination album's latest photo capture time. Local downloads and each Immich destination have separate import dates.
 - **Album-bound downloads.** Switching albums resets the stats and stops the previous queue. A file already in progress finishes in its original album folder.
 - **Keep original filenames.** Successful downloads keep Aula's filenames, with safety cleanup and suffixes for name collisions. Chronological sorting uses capture-date metadata instead of added date prefixes.
 - **Keep original quality.** Download original media rather than thumbnails, and update metadata without re-encoding photos or audio/video. Processing stays on your computer; Aula's copies remain untouched.

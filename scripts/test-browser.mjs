@@ -49,15 +49,15 @@ const verifyBrowser = async () => {
 
     await waitPanel('toggle', 'Start')
 
-    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), false)
+    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), true)
 
     await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').click(), settings.browser.panelId)
 
-    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), false)
+    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), true)
 
     await click('child-tags')
 
-    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), true)
+    assert.equal(await page.evaluate(id => document.getElementById(id).shadowRoot.getElementById('child-tags').checked, settings.browser.panelId), false)
 
     scenario.holdMedia = true
 
@@ -65,7 +65,9 @@ const verifyBrowser = async () => {
 
     await until(() => scenario.heldResponse, 'worker fetching original')
 
-    assert.equal((await state()).run.childTags, true)
+    assert.equal((await state()).run.childTags, false)
+
+    assert.deepEqual((await state()).run.operation.pending.job.media.children, [])
 
     await waitPanel('phase', 'camera-1.jpg')
 
@@ -188,6 +190,7 @@ const verifyBrowser = async () => {
             expected: 1,
             completed: 0,
             childTags: false,
+            destination: null,
             failed: false,
             cancelled: false,
             operation: {
