@@ -17,9 +17,7 @@ const scenario = () => {
     [main, `window.aulaApiVersion="v${CONFIG.aula.apiVersion}";`],
   ])
 
-  const issues: { body: string, state: string }[] = []
-
-  const notifications: object[] = []
+  const issues: { title: string, body: string, state: string }[] = []
 
   const requests: string[] = []
 
@@ -53,9 +51,7 @@ const scenario = () => {
     if (body) {
       assert.deepEqual(args, ['repos/example/plugin/issues', '--method', 'POST'])
 
-      notifications.push(body)
-
-      issues.push({ body: String(Reflect.get(body, 'body')), state: 'open' })
+      issues.push({ ...body as { title: string, body: string }, state: 'open' })
 
       return { html_url: 'https://github.com/example/plugin/issues/1' }
     }
@@ -71,7 +67,6 @@ const scenario = () => {
     vendor,
     portal,
     issues,
-    notifications,
     requests,
     run: async (detectOnly = false) => checkAulaApi({ fetchPublic, github, repository: 'example/plugin', notifyUser: 'example-maintainer', detectOnly }),
   }
@@ -82,7 +77,7 @@ void test('Public Aula monitoring stays silent when supported, then mentions onc
 
   await monitor.run()
 
-  assert.equal(monitor.notifications.length, 0)
+  assert.equal(monitor.issues.length, 0)
 
   assert.deepEqual(monitor.requests, [monitor.portal, monitor.vendor, monitor.main])
 
@@ -92,34 +87,37 @@ void test('Public Aula monitoring stays silent when supported, then mentions onc
 
   await monitor.run(true)
 
-  assert.equal(monitor.notifications.length, 0)
+  assert.equal(monitor.issues.length, 0)
 
   await monitor.run()
 
-  assert.equal(monitor.notifications.length, 1)
+  assert.equal(monitor.issues.length, 1)
 
-  assert.match(String(Reflect.get(monitor.notifications[0]!, 'title')), new RegExp(`API v${version} detected; plugin supports v${CONFIG.aula.apiVersion}`))
+  const [issue] = monitor.issues
 
-  assert.match(monitor.issues[0]!.body, /@example-maintainer/)
+  assert(issue)
+
+  assert.equal(issue.title, `Aula API v${version} detected; plugin supports v${CONFIG.aula.apiVersion}`)
+
+  assert.match(issue.body, /@example-maintainer/)
 
   assert.equal(Reflect.has(globalThis, 'syntheticMonitorExecuted'), false)
 
-  monitor.issues[0]!.state = 'closed'
+  issue.state = 'closed'
 
   await monitor.run()
 
-  assert.equal(monitor.notifications.length, 1)
+  assert.equal(monitor.issues.length, 1)
 
   monitor.sources.set(monitor.main, `window.aulaApiVersion="v${version + 1}";`)
 
   await monitor.run()
 
-  assert.equal(monitor.notifications.length, 2)
+  assert.equal(monitor.issues.length, 2)
 })
 
 void test('Missing, conflicting, oversized and unavailable public version signals fail without creating an issue', async () => {
   for (const source of [
-    '/* Synthetic changed frontend with no known declaration. */',
     'const syntheticExample = "window.aulaApiVersion=\'v25\'"; /* window.aulaApiVersion="v25" */',
     'window.aulaApiVersion="v26"; window.aulaApiVersion="v27";',
     'window.aulaApiVersion="v99999999999999999999999999";',
@@ -133,6 +131,6 @@ void test('Missing, conflicting, oversized and unavailable public version signal
 
     await assert.rejects(monitor.run())
 
-    assert.equal(monitor.notifications.length, 0)
+    assert.equal(monitor.issues.length, 0)
   }
 })

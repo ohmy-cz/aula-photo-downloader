@@ -14,7 +14,7 @@ const githubRequest = (args: string[], body?: object): unknown => JSON.parse(exe
   ...(body ? ['--input', '-'] : []),
 ], {
   encoding: 'utf8',
-  input: body ? JSON.stringify(body) : undefined,
+  input: JSON.stringify(body),
   stdio: ['pipe', 'pipe', 'pipe'],
   timeout: CONFIG.timing.apiRequestMs,
 }))
@@ -36,7 +36,7 @@ export const checkAulaApi = async ({
   const monitor = CONFIG.aulaMonitor
 
   /** Bound each public response and reject redirects, including redirects to login or another host. */
-  const read = async (url: URL, limit: number): Promise<string> => {
+  const read = async (url: string, limit: number): Promise<string> => {
     const response = await fetchPublic(url, {
       credentials: 'omit',
       redirect: 'error',
@@ -52,9 +52,9 @@ export const checkAulaApi = async ({
     return new TextDecoder().decode(await readBytes(response, limit, 'api-contract', 'collection-limit'))
   }
 
-  const portal = new URL(monitor.portalPath, origin)
+  const portal = new URL(monitor.portalPath, origin).href
 
-  const dom = new JSDOM(await read(portal, CONFIG.limits.apiResponseBytes))
+  const document = JSDOM.fragment(await read(portal, CONFIG.limits.apiResponseBytes))
 
   const assets = new Set<string>()
 
@@ -84,25 +84,20 @@ export const checkAulaApi = async ({
     visit(ts.createSourceFile('aula-public.js', source, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS))
   }
 
-  try {
-    for (const script of dom.window.document.querySelectorAll('script')) {
-      const src = script.getAttribute('src')
+  for (const script of document.querySelectorAll('script')) {
+    const src = script.getAttribute('src')
 
-      if (src === null || src === '') {
-        inspect(script.textContent)
+    if (src === null || src === '') {
+      inspect(script.textContent)
 
-        continue
-      }
-
-      const url = new URL(src, portal)
-
-      if (url.origin === origin && !url.username && !url.password && url.pathname.startsWith(monitor.assetPathPrefix) && url.pathname.endsWith('.js')) {
-        assets.add(url.href)
-      }
+      continue
     }
-  }
-  finally {
-    dom.window.close()
+
+    const url = new URL(src, portal)
+
+    if (url.origin === origin && !url.username && !url.password && url.pathname.startsWith(monitor.assetPathPrefix) && url.pathname.endsWith('.js')) {
+      assets.add(url.href)
+    }
   }
 
   if (assets.size > monitor.maxAssets) {
@@ -110,7 +105,7 @@ export const checkAulaApi = async ({
   }
 
   for (const asset of assets) {
-    inspect(await read(new URL(asset), monitor.assetBytes))
+    inspect(await read(asset, monitor.assetBytes))
   }
 
   const [version] = versions
@@ -141,7 +136,7 @@ export const checkAulaApi = async ({
 
   const issue = z.object({ html_url: z.url() }).parse(github([`repos/${repository}/issues`, '--method', 'POST'], {
     title: `Aula API v${version} detected; plugin supports v${supported}`,
-    body: `${marker}\n@${notifyUser} Aula's public frontend now declares API **v${version}**; this plugin implements **v${supported}**.\n\nReview the gallery contract before updating support. This does not prove that v${supported} is retired or that the newer API is compatible.\n\nSource: ${portal.href}\n\nDetected without login, cookies or private data.`,
+    body: `${marker}\n@${notifyUser} Aula's public frontend uses API **v${version}**; this plugin supports **v${supported}**.\n\nReview the gallery contract before updating support. This does not establish compatibility or retirement of v${supported}.\n\nSource: ${portal}`,
   }))
 
   return `Opened API version alert: ${issue.html_url}`
