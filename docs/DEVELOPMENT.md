@@ -36,6 +36,8 @@ For a future version:
 
 ## Verification
 
+`Monitor Aula API` runs daily at 07:23 UTC and can also be dispatched manually. It reads the public portal's current first-party JavaScript as text, comparing `window.aulaApiVersion` with `config.json`. A newer version opens one issue mentioning the repository owner (override with the `AULA_API_NOTIFY_USER` repository variable). Open and closed alerts suppress repeats. Enable GitHub mention/email notifications to receive the alert. Missing, conflicting or unavailable declarations fail this separate workflow; the monitor never logs in, executes remote scripts or changes supported API versions. Run `npm run monitor:aula-api -- --detect-only` for a read-only check without GitHub access.
+
 `npm test` runs workflow integration scenarios for downloads, recovery, message authorization, activation, duplicate imports and checkpoint/DST behavior. The workflow scenarios use mocked Chrome/Aula APIs and actual UI bundles. Isolated helper/schema unit suites and intermediate-state checks are excluded. Test doubles and bundle setup live in `tests/helpers/`; typed ESLint and TypeScript check promises and unused declarations.
 
 `test:wasm` runs the actual bundled worker for JPEG, PNG, TIFF, HEIC and supported video containers with multiple audio tracks and an embedded subtitle and verifies metadata. Native ExifTool independently checks output when installed. Set `FFMPEG` to a native executable for independent decoded payload comparisons. Generated verification files live in a temporary directory.

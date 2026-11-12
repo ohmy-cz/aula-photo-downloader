@@ -1,7 +1,7 @@
 {
   "name": "aula-photo-downloader",
   "type": "module",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "description": "A browser extension for archiving Aula photos and videos in your own storage; with resolved correct capture dates and tags.",
   "license": "MIT",
@@ -16,6 +16,7 @@
     "package": "npm run lint && npm run typecheck && npm test && npm run build && node scripts/package.mjs",
     "demo": "node scripts/demo.mjs",
     "test:browser": "npm run build && node scripts/test-browser.mjs",
+    "monitor:aula-api": "tsx scripts/check-aula-api.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "prepare": "husky",

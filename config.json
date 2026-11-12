@@ -16,6 +16,12 @@
     "defaultFilter": "all",
     "maxRepeatedPages": 2
   },
+  "aulaMonitor": {
+    "portalPath": "/portal/",
+    "assetPathPrefix": "/static/js/",
+    "maxAssets": 32,
+    "assetBytes": 16777216
+  },
   "timing": {
     "apiRequestMs": 30000,
     "mediaFetchMs": 60000,
