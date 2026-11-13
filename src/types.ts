@@ -91,8 +91,10 @@ export type Request
     | { type: 'status', operation: Operation }
     | { type: 'cancel' | 'finish', runId: string }
     | { type: 'open-settings' | 'immich-status' | 'immich-disconnect' | 'immich-albums' }
-    | { type: 'immich-connect', server: string, apiKey: string }
+    | { type: 'immich-connect', server: string, apiKey?: string }
     | { type: 'immich-select', destination: ImmichDestination }
+    | { type: 'immich-thumbnail', destination: ImmichDestination, assetId: string }
+    | { type: 'immich-create-album', connectionId: string, name: string }
 
 export type ProcessResult
   = | { mode: 'working', operation: Operation }

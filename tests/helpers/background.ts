@@ -10,6 +10,7 @@ interface Reply extends Partial<Summary> {
   runId?: string
   error?: string
   ok?: boolean
+  src?: string
 }
 
 type Sender = Pick<chrome.runtime.MessageSender, 'id' | 'url'> & {

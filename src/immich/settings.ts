@@ -29,15 +29,15 @@ export const loadConnection = async (): Promise<ImmichConnection | null> => {
 export const connected = async (connection: ImmichConnection | null): Promise<boolean> =>
   connection !== null && await chrome.permissions.contains({ origins: [immichPermission(connection.server)] })
 
-/** Expose server address and connection state, never the API key, to the options page. */
+/** Expose connection state and key length for masking, never the saved key, to the options page. */
 export const connectionStatus = async (): Promise<ConnectionStatus> => {
   const connection = await loadConnection()
 
-  return { connected: await connected(connection), server: connection?.server ?? '' }
+  return { connected: await connected(connection), server: connection?.server ?? '', keyLength: connection?.apiKey.length ?? 0 }
 }
 
 /** Bind work to the verified connection selected at submission; a replaced connection cannot silently receive an old run. */
-export const requireConnection = async (destination?: ImmichDestination): Promise<ImmichConnection> => {
+export const requireConnection = async (destination?: Pick<ImmichDestination, 'connectionId'>): Promise<ImmichConnection> => {
   const connection = await loadConnection()
 
   if (!connection || !await connected(connection) || (destination && destination.connectionId !== connection.id)) {

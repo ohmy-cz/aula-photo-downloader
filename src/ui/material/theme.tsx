@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react'
 import createCache from '@emotion/cache'
 import { CacheProvider } from '@emotion/react'
+import { csCZ, daDK, enUS, esES } from '@mui/material/locale'
 import ScopedCssBaseline from '@mui/material/ScopedCssBaseline'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { uiLanguage } from '../i18n'
+
+const locales: Record<string, typeof enUS> = { cs: csCZ, da: daDK, en: enUS, es: esES }
 
 /** Own styles and portals in the same document or shadow root; never restyle Aula itself. */
 export const createUiTheme = (container: HTMLElement) => {
@@ -34,6 +38,7 @@ export const createUiTheme = (container: HTMLElement) => {
     },
     shape: { borderRadius: 12 },
     components: {
+      ...(locales[uiLanguage()] ?? enUS).components,
       MuiStack: { defaultProps: { useFlexGap: true } },
       MuiButton: { defaultProps: { disableElevation: true } },
       MuiTextField: { defaultProps: { size: 'small', fullWidth: true } },

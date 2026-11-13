@@ -1,6 +1,7 @@
 import type { Media } from './types'
 import { z } from 'zod'
 import { CONFIG } from './config'
+import { AppError } from './errors'
 import { captureFor } from './metadata/dates'
 import {
   cleanNames,
@@ -55,6 +56,23 @@ export const isAulaSender = (sender: chrome.runtime.MessageSender): boolean => {
   catch {
     return false
   }
+}
+
+/** Require the exact Aula sender and toolbar activation recorded for its tab before exposing extension capabilities. */
+export const activatedTab = async (sender: chrome.runtime.MessageSender): Promise<number> => {
+  const tabId = sender.tab?.id
+
+  if (!isAulaSender(sender) || tabId === undefined) {
+    throw new AppError('activation-required')
+  }
+
+  const slot = `${CONFIG.archive.activationStorageKey}:${String(tabId)}`
+
+  if ((await chrome.storage.session.get(slot))[slot] !== true) {
+    throw new AppError('activation-required')
+  }
+
+  return tabId
 }
 
 /** Accept worker completion only from this extension’s offscreen document, never a tab or another extension. */

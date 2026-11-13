@@ -1,3 +1,4 @@
+import type { AlbumSelection, ImmichAlbum, ImmichDestination } from '../../src/immich/contracts'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { galleryKey } from '../../src/api/gallery'
@@ -46,6 +47,9 @@ export const panel = async (
     albumId?: number
     items?: number
     holdProcessing?: boolean
+    immich?: AlbumSelection
+    thumbnailError?: string
+    createAlbum?: (name: string) => Promise<ImmichAlbum | { error: string }>
   } = {},
 ) => {
   const dom = createDom('<button id=\'launcher\'>Open downloader</button>', {
@@ -64,7 +68,28 @@ export const panel = async (
     value: languages[0] ?? '',
   })
 
-  const messages: { type: string, key?: string, runId?: string, media?: { filename: string } }[] = []
+  const messages: { type: string, key?: string, runId?: string, media?: { filename: string }, assetId?: string, destination?: ImmichDestination }[] = []
+
+  const covers = new Map<Element, () => void>()
+
+  /** Model visibility explicitly because JSDOM has no layout or intersection detection. */
+  class IntersectionObserver {
+    target: Element | null = null
+
+    constructor(private callback: (entries: { isIntersecting: boolean }[]) => void) {}
+
+    observe(target: Element) {
+      this.target = target
+
+      covers.set(target, () => this.callback([{ isIntersecting: true }]))
+    }
+
+    disconnect() {
+      if (this.target) {
+        covers.delete(this.target)
+      }
+    }
+  }
 
   const resources: { name: string }[] = []
 
@@ -118,7 +143,7 @@ export const panel = async (
 
   Object.defineProperty(window.crypto, 'subtle', { value: crypto.subtle })
 
-  Object.assign(window, { TextEncoder, AbortController, AbortSignal, Date })
+  Object.assign(window, { TextEncoder, AbortController, AbortSignal, Date, IntersectionObserver })
 
   Object.defineProperty(window.performance, 'getEntriesByType', {
     value: () => resources,
@@ -135,8 +160,27 @@ export const panel = async (
           key?: string
           runId?: string
           media?: { filename: string }
+          assetId?: string
+          destination?: ImmichDestination
+          name?: string
         }) => {
           messages.push(request)
+
+          if (request.type === 'immich-albums') {
+            return options.immich
+          }
+
+          if (request.type === 'immich-thumbnail') {
+            return (options.thumbnailError ?? '') !== '' ? { error: options.thumbnailError } : { src: `blob:https://example.test/synthetic/${request.assetId}` }
+          }
+
+          if (request.type === 'immich-select') {
+            return { ...request.destination, latestPhotoAt: null }
+          }
+
+          if (request.type === 'immich-create-album') {
+            return options.createAlbum?.(required(request.name))
+          }
 
           if (request.type === 'gallery' && holdNextSummary) {
             holdNextSummary = false
@@ -206,7 +250,7 @@ export const panel = async (
 
           return Promise.resolve(
             request.type === 'gallery'
-              ? { checkpoint: checkpointFor(request.key) }
+              ? { checkpoint: checkpointFor(request.key), immichConnected: !!options.immich }
               : { mode: 'processed' },
           )
         },
@@ -285,6 +329,11 @@ export const panel = async (
     reopen: () => window.eval(bundle),
     window,
     messages,
+    revealCovers: () => {
+      for (const reveal of covers.values()) {
+        reveal()
+      }
+    },
     openAlbum: async (id: number, checkpoint?: string | null) => {
       await albumRequest(id, checkpoint)
 
@@ -307,6 +356,7 @@ export const panel = async (
     element,
     query,
     click: async (id: string) => click(element(id)),
+    submit: async (id: string) => click(element(id), 'submit'),
     change: async (id: string, value: string) =>
       changeInput(window, element(id) as HTMLInputElement, value),
     hold: () => {

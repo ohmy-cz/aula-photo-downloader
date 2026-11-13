@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState } from 'react'
 import { AppError } from '../../errors'
-import { ApiKey, IMMICH_API_VERSION, immichPermission, immichUrl } from '../../immich/contracts'
+import { ApiKey, immichPermission, immichUrl } from '../../immich/contracts'
 import { request } from '../client'
 import { t, translateError } from '../i18n'
 import { mountExtensionPage } from './extension-page'
@@ -17,7 +17,7 @@ import { useTrustedAction } from './use-trusted-action'
 const Options = () => {
   const [loading, setLoading] = useState(true)
 
-  const [status, setStatus] = useState<ConnectionStatus>({ connected: false, server: '' })
+  const [status, setStatus] = useState<ConnectionStatus>({ connected: false, server: '', keyLength: 0 })
 
   const [server, setServer] = useState('')
 
@@ -35,6 +35,8 @@ const Options = () => {
         setStatus(value)
 
         setServer(value.server)
+
+        setApiKey('*'.repeat(value.keyLength))
       }
     }).catch((error: unknown) => {
       if (!disposed) {
@@ -51,14 +53,16 @@ const Options = () => {
     }
   }, [])
 
-  /** Request the exact server host during the user's gesture, then save only a server-verified connection. */
+  /** Keep stars out of key updates; reusing a saved key is allowed only for its original server, after server verification. */
   const connect = async () => {
     setError('')
 
     try {
       const canonical = immichUrl(server)
 
-      if (!ApiKey.safeParse(apiKey).success) {
+      const keepKey = status.keyLength > 0 && /^\*+$/.test(apiKey)
+
+      if ((keepKey && canonical !== status.server) || (!keepKey && !ApiKey.safeParse(apiKey).success)) {
         throw new AppError('immich-config')
       }
 
@@ -66,7 +70,7 @@ const Options = () => {
         throw new AppError('immich-permission')
       }
 
-      const value = await request<ConnectionStatus>({ type: 'immich-connect', server: canonical, apiKey })
+      const value = await request<ConnectionStatus>({ type: 'immich-connect', server: canonical, ...(keepKey ? {} : { apiKey }) })
 
       const previous = status.server
 
@@ -74,7 +78,7 @@ const Options = () => {
 
       setServer(value.server)
 
-      setApiKey('')
+      setApiKey('*'.repeat(value.keyLength))
 
       if (previous && immichPermission(previous) !== immichPermission(value.server)) {
         await chrome.permissions.remove({ origins: [immichPermission(previous)] }).catch(() => false)
@@ -124,8 +128,8 @@ const Options = () => {
       <Alert id="connection-status" severity={status.connected ? 'success' : 'info'} role="status">
         {status.connected ? t('immichConnected', { server: status.server }) : t('immichDisconnected')}
       </Alert>
-      <TextField id="immich-server" label={t('immichServer')} value={server} required disabled={loading || busy} onChange={event => setServer(event.target.value)} helperText={t('immichServerHelp')} />
-      <TextField id="immich-key" label={t('immichKey')} type="password" autoComplete="off" value={apiKey} required disabled={loading || busy} onChange={event => setApiKey(event.target.value)} helperText={t('immichKeyHelp')} />
+      <TextField id="immich-server" label={t('immichServer')} value={server} required disabled={loading || busy} onChange={event => setServer(event.target.value)} />
+      <TextField id="immich-key" label={t('immichKey')} type="password" autoComplete="off" value={apiKey} required disabled={loading || busy} onChange={event => setApiKey(event.target.value)} />
       <Typography variant="subtitle2">{t('immichPermissions')}</Typography>
       <Typography component="ul" variant="body2" sx={{ pl: 2.5, m: 0 }}>
         <li>
@@ -143,11 +147,25 @@ const Options = () => {
           {t('immichPermissionAlbums')}
         </li>
         <li>
+          <code>album.create</code>
+          {' '}
+          —
+          {' '}
+          {t('immichPermissionCreate')}
+        </li>
+        <li>
           <code>asset.read</code>
           {' '}
           —
           {' '}
           {t('immichPermissionDate')}
+        </li>
+        <li>
+          <code>asset.view</code>
+          {' '}
+          —
+          {' '}
+          {t('immichPermissionView')}
         </li>
         <li>
           <code>asset.upload</code>
@@ -164,12 +182,11 @@ const Options = () => {
           {t('immichPermissionAdd')}
         </li>
       </Typography>
-      <Typography variant="caption" color="text.secondary">{t('immichKeyStorage')}</Typography>
+      {status.server && <Button id="immich-manage-key" component="a" href={`${status.server}/user-settings?isOpen=api-keys`} target="_blank" rel="noopener noreferrer" disabled={loading || busy}>{t('immichManageKey')}</Button>}
       <Stack direction="row" spacing={1}>
         <Button id="immich-connect" type="submit" variant="contained" disabled={loading || busy}>{t('immichConnect')}</Button>
         <Button id="immich-disconnect" onClick={(event) => { void run(event, disconnect) }} disabled={loading || busy || !status.server}>{t('immichDisconnect')}</Button>
       </Stack>
-      <Typography variant="caption" color="text.secondary">{t('immichApi', { version: IMMICH_API_VERSION })}</Typography>
     </Stack>
   )
 }

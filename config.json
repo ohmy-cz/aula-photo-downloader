@@ -50,7 +50,8 @@
     "collectionBytes": 33554432,
     "galleryRefreshAttempts": 3,
     "immichKeyCharacters": 1024,
-    "immichAlbums": 10000
+    "immichAlbums": 10000,
+    "immichThumbnailBytes": 524288
   },
   "archive": {
     "rootFolder": "aula-photo-downloader",

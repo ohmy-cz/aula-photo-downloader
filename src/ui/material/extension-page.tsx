@@ -27,8 +27,7 @@ const ExtensionPage = ({ children }: { children: ReactNode }) => (
       <Box component="footer" sx={{ px: 2.5, py: 2 }}>
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mb: 1 }}
+          sx={{ display: 'block', mb: 1, color: 'grey.600', textAlign: 'center', fontSize: '10px' }}
         >
           {t('independent')}
         </Typography>
@@ -36,7 +35,8 @@ const ExtensionPage = ({ children }: { children: ReactNode }) => (
           href={CONFIG.browser.privacyPage}
           target="_blank"
           rel="noopener noreferrer"
-          variant="body2"
+          variant="caption"
+          sx={{ display: 'block', fontSize: '10px', textAlign: 'center', color: 'grey.600' }}
         >
           {t('privacy')}
         </Link>

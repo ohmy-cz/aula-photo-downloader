@@ -56,9 +56,13 @@ Run `npm run demo` and open `http://127.0.0.1:8765/?newerApi=1&fresh=api-fallbac
 
 ## Immich
 
-The integration follows the released Immich v3.4.1 OpenAPI contract. Standard extension options request access to the configured server only; API keys stay in trusted local storage. Required key permissions are `user.read`, `album.read`, `asset.read`, `asset.upload` and `albumAsset.create`. `immich/client.ts` validates consumed response fields and uses native multipart upload; uploads run in the offscreen document so service-worker suspension does not interrupt them. Each connection/album has a separate checkpoint. The last album choice persists locally; missing choices fall back to the newest writable album.
+The integration follows the released Immich v3.4.1 OpenAPI contract. Standard extension options request access to the configured server only; API keys stay in trusted local storage. Settings receive only the saved key's length and display that many stars. Saving stars preserves the key, connection identity and album choice; changing servers requires entering a key. Required key permissions are `user.read`, `album.read`, `album.create`, `asset.read`, `asset.view` (album thumbnails), `asset.upload` and `albumAsset.create`. `immich/client.ts` validates consumed response fields and uses native multipart upload; uploads run in the offscreen document so service-worker suspension does not interrupt them. Each connection/album has a separate checkpoint. The last album choice persists locally; missing choices fall back to the newest writable album.
 
 Imports reuse local metadata processing without Chrome download pacing. Before collection, search the selected album for its newest non-trashed image by `fileCreatedAt`; silently filter only strictly older photos, retaining equal timestamps, videos and files without a capture plan for normal validation. Verify upload, duplicate handling and album assignment with synthetic data when changing the API contract. Never use a real account/key or live media in tests.
+
+The searchable MUI album picker loads covers only for visible options and caches them for that dialog. The background proxies bounded raster previews from the saved server without returning credentials, following redirects or storing images. Preview requests do not block the transfer queue. Missing `asset.view` shows a notice and placeholders; imports remain available.
+
+The picker can create an empty private album with `POST /albums` and the `album.create` permission. It selects the returned album only after a validated server response. Creation is never retried automatically; failures preserve the form. Settings link to Immich’s API-key editor so users can update the existing key’s permissions.
 
 ## Processing components
 

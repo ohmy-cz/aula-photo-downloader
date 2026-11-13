@@ -9,8 +9,10 @@ import { required } from '../required'
 import { readBytes } from '../streams'
 import { Album, immichUrl } from './contracts'
 
+const albumSummary = (album: z.infer<typeof Album>): ImmichAlbum => ({ id: album.id, name: album.albumName, thumbnailId: album.albumThumbnailAssetId })
+
 /** Send credentials only to the configured server, without cookies or redirects; bound every response before parsing. */
-const api = async (connection: ImmichConnection, path: string, options: RequestInit = {}, upload = false): Promise<unknown> => {
+const fetchResponse = async (connection: ImmichConnection, path: string, options: RequestInit = {}, upload = false): Promise<Response> => {
   let response: Response
 
   try {
@@ -31,6 +33,13 @@ const api = async (connection: ImmichConnection, path: string, options: RequestI
 
     throw new AppError([401, 403].includes(response.status) ? 'immich-auth' : 'immich-unavailable')
   }
+
+  return response
+}
+
+/** Decode only bounded JSON responses after transport and authentication checks. */
+const api = async (connection: ImmichConnection, path: string, options: RequestInit = {}, upload = false): Promise<unknown> => {
+  const response = await fetchResponse(connection, path, options, upload)
 
   try {
     return JSON.parse(new TextDecoder().decode(await readBytes(response, CONFIG.limits.apiResponseBytes, 'immich-contract', 'immich-contract')))
@@ -55,7 +64,50 @@ export const writableAlbums = async (connection: ImmichConnection): Promise<Immi
   return result.data
     .filter(album => album.albumUsers.some(member => member.user.id === identity.data.id && member.role !== 'viewer'))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.id.localeCompare(b.id))
-    .map(album => ({ id: album.id, name: album.albumName }))
+    .map(albumSummary)
+}
+
+/** Create an empty, private album; confirm and validate the response before exposing its identity. Never retry this mutation automatically. */
+export const createAlbum = async (connection: ImmichConnection, name: string): Promise<ImmichAlbum> => {
+  const albumName = z.string().trim().min(1).max(CONFIG.limits.nameCharacters).parse(name)
+
+  const result = Album.safeParse(await api(connection, 'albums', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ albumName }),
+  }))
+
+  if (!result.success) {
+    throw new AppError('immich-contract')
+  }
+
+  return albumSummary(result.data)
+}
+
+/** Return a bounded raster preview without exposing the server key, accepting remote URLs, following redirects or saving media. */
+export const albumThumbnail = async (connection: ImmichConnection, assetId: string): Promise<{ src: string }> => {
+  const response = await fetchResponse(connection, `assets/${z.uuid().parse(assetId)}/thumbnail?size=thumbnail`, {
+    headers: { Accept: 'image/webp,image/jpeg,image/png' },
+    cache: 'no-store',
+  })
+
+  const mime = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
+
+  if (!['image/webp', 'image/jpeg', 'image/png'].includes(mime ?? '')) {
+    await response.body?.cancel()
+
+    throw new AppError('immich-contract')
+  }
+
+  const bytes = await readBytes(response, CONFIG.limits.immichThumbnailBytes, 'immich-contract', 'immich-contract')
+
+  let binary = ''
+
+  for (let index = 0; index < bytes.length; index += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 32768))
+  }
+
+  return { src: `data:${mime};base64,${btoa(binary)}` }
 }
 
 /** Read the newest photo's authoritative capture instant, excluding trashed assets; an empty album has no cutoff. */

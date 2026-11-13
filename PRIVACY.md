@@ -8,7 +8,7 @@ When you press Start or Import in the downloader, it reads your selected Aula ga
 
 ## Where data goes
 
-Processing happens on your computer. Requests go to Aula and its configured media service. If you connect Immich and choose Import, processed photos/videos and their metadata, including any enabled name tags and existing locations, are uploaded to your chosen Immich server. We receive no media or account data and provide no analytics, advertising or remote error reporting. Data is used only for the disclosed archiving features, in accordance with the Chrome Web Store User Data Policy's Limited Use requirements. We do not sell or share it with other parties.
+Processing happens on your computer. Requests go to Aula and its configured media service. If you connect Immich, the album picker displays thumbnails from that server in Aula; previews are held only in memory. If you choose Import, processed photos/videos and their metadata, including any enabled name tags and existing locations, are uploaded to your chosen Immich server. We receive no media or account data and provide no analytics, advertising or remote error reporting. Data is used only for the disclosed archiving features, in accordance with the Chrome Web Store User Data Policy's Limited Use requirements. We do not sell or share it with other parties.
 
 ## Storage and deletion
 

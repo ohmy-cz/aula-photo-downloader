@@ -3,8 +3,8 @@ import { CONFIG, ROOT_FOLDER } from './config'
 import { handleWorkerReady } from './downloads/coordinator'
 import { finalizeDownload, reconcilePending } from './downloads/receipts'
 import { AppError, errorCode } from './errors'
-import { handleImmichRequest } from './immich/requests'
-import { isAulaSender, isOffscreenSender } from './messages'
+import { handleImmichRequest, handleThumbnailRequest } from './immich/requests'
+import { activatedTab, isAulaSender, isOffscreenSender } from './messages'
 import { closeIdleOffscreen } from './runtime/offscreen-client'
 import { object } from './security'
 import { clearHistory, loadHistory, saveRun } from './storage/repository'
@@ -18,6 +18,15 @@ const serialize = async <T>(operation: () => Promise<T>): Promise<T> => {
   queue = next
 
   return next
+}
+
+/** Preview latency must not delay Stop, download receipts or other serialized state changes. */
+const thumbnail = async (message: Record<string, unknown>, sender: chrome.runtime.MessageSender) => {
+  await initialization
+
+  await activatedTab(sender)
+
+  return handleThumbnailRequest(message)
 }
 
 /** Authorize before queuing; only short replies remain open while Chrome owns long-running work. */
@@ -45,6 +54,14 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
 
   if (!offscreen && !popup && !settings && !isAulaSender(sender)) {
     return
+  }
+
+  const fail = (error: unknown) => respond({ error: errorCode(error) })
+
+  if (message.type === 'immich-thumbnail') {
+    void thumbnail(message, sender).then(respond).catch(fail)
+
+    return true
   }
 
   void serialize(async () => {
@@ -93,24 +110,14 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
       offscreen
       || popup
       || settings
-      || !['gallery', 'begin', 'process', 'status', 'cancel', 'finish', 'open-settings', 'immich-albums', 'immich-select'].includes(
+      || !['gallery', 'begin', 'process', 'status', 'cancel', 'finish', 'open-settings', 'immich-albums', 'immich-select', 'immich-create-album'].includes(
         String(message.type),
       )
     ) {
       throw new AppError('operation')
     }
 
-    const tabId = sender.tab?.id
-
-    if (tabId === undefined) {
-      throw new AppError('activation-required')
-    }
-
-    const slot = `${CONFIG.archive.activationStorageKey}:${String(tabId)}`
-
-    if ((await chrome.storage.session.get(slot))[slot] !== true) {
-      throw new AppError('activation-required')
-    }
+    const tabId = await activatedTab(sender)
 
     if (message.type === 'open-settings') {
       await chrome.runtime.openOptionsPage()
@@ -118,16 +125,12 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, respond) => {
       return { ok: true }
     }
 
-    if (message.type === 'immich-albums' || message.type === 'immich-select') {
+    if (['immich-albums', 'immich-select', 'immich-create-album'].includes(String(message.type))) {
       return handleImmichRequest(state, message, false)
     }
 
     return handlePageRequest(state, message, tabId)
-  })
-    .then(respond)
-    .catch((error: unknown) => {
-      respond({ error: errorCode(error) })
-    })
+  }).then(respond).catch(fail)
 
   return true
 })

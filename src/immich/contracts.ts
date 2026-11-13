@@ -2,8 +2,6 @@ import { z } from 'zod'
 import { CONFIG } from '../config'
 import { AppError } from '../errors'
 
-export const IMMICH_API_VERSION = '3.4.1'
-
 /** Accept a user-selected HTTP(S) server, including reverse-proxy paths; credentials never belong in its URL. */
 export const immichUrl = (value: string): string => {
   try {
@@ -45,6 +43,7 @@ export interface PreparedDestination extends ImmichDestination {
 export const Album = z.object({
   id: z.uuid(),
   albumName: z.string().min(1).max(CONFIG.limits.nameCharacters),
+  albumThumbnailAssetId: z.uuid().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   albumUsers: z.array(z.object({ role: z.enum(['owner', 'editor', 'viewer']), user: z.object({ id: z.uuid() }) })).min(1),
 })
@@ -52,6 +51,7 @@ export const Album = z.object({
 export interface ImmichAlbum {
   id: string
   name: string
+  thumbnailId: string | null
 }
 
 export interface AlbumSelection {
@@ -63,4 +63,5 @@ export interface AlbumSelection {
 export interface ConnectionStatus {
   connected: boolean
   server: string
+  keyLength: number
 }

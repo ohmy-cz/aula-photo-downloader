@@ -2,11 +2,18 @@ import type { State } from '../types'
 import { z } from 'zod'
 import { CONFIG } from '../config'
 import { AppError } from '../errors'
-import { latestPhotoDate, writableAlbums } from './client'
+import { albumThumbnail, createAlbum, latestPhotoDate, writableAlbums } from './client'
 import { ApiKey, Destination, immichPermission, immichUrl } from './contracts'
-import { connectionStatus, requireConnection, saveConnection } from './settings'
+import { connectionStatus, loadConnection, requireConnection, saveConnection } from './settings'
 
-/** Keep credentials and connection changes in the options page; album selection exposes only safe DTOs to an activated Aula tab. */
+/** Read previews independently of the mutation queue, bound to the saved connection selected by an activated tab. */
+export const handleThumbnailRequest = async (message: Record<string, unknown>) => {
+  const connection = await requireConnection(Destination.parse(message.destination))
+
+  return albumThumbnail(connection, z.uuid().parse(message.assetId))
+}
+
+/** Keep credentials in the background; omitted/masked keys preserve the same server's connection, and content receives only album DTOs. */
 export const handleImmichRequest = async (state: State, message: Record<string, unknown>, settings: boolean) => {
   if (settings && message.type === 'immich-status') {
     return connectionStatus()
@@ -20,14 +27,18 @@ export const handleImmichRequest = async (state: State, message: Record<string, 
     if (message.type === 'immich-disconnect') {
       await chrome.storage.local.remove(CONFIG.immich.storageKey)
 
-      return { connected: false, server: '' }
+      return { connected: false, server: '', keyLength: 0 }
     }
 
     const server = immichUrl(z.string().parse(message.server))
 
-    const connection = { id: crypto.randomUUID(), server, apiKey: ApiKey.parse(message.apiKey), lastAlbumId: null }
+    const keepKey = message.apiKey === undefined || (typeof message.apiKey === 'string' && /^\*+$/.test(message.apiKey))
 
-    if (!await chrome.permissions.contains({ origins: [immichPermission(server)] })) {
+    const connection = keepKey
+      ? await loadConnection()
+      : { id: crypto.randomUUID(), server, apiKey: ApiKey.parse(message.apiKey), lastAlbumId: null }
+
+    if (!connection || connection.server !== server || !await chrome.permissions.contains({ origins: [immichPermission(server)] })) {
       throw new AppError('immich-config')
     }
 
@@ -35,7 +46,7 @@ export const handleImmichRequest = async (state: State, message: Record<string, 
 
     await saveConnection(connection)
 
-    return { connected: true, server }
+    return { connected: true, server, keyLength: connection.apiKey.length }
   }
 
   if (!settings && message.type === 'immich-albums') {
@@ -46,9 +57,15 @@ export const handleImmichRequest = async (state: State, message: Record<string, 
     return { albums, connectionId: connection.id, selectedId: albums.find(album => album.id === connection.lastAlbumId)?.id ?? albums[0]?.id ?? null }
   }
 
-  if (!settings && message.type === 'immich-select') {
+  if (!settings && ['immich-select', 'immich-create-album'].includes(String(message.type))) {
     if (state.run) {
       throw new AppError('worker-busy')
+    }
+
+    if (message.type === 'immich-create-album') {
+      const connection = await requireConnection({ connectionId: z.uuid().parse(message.connectionId) })
+
+      return createAlbum(connection, z.string().parse(message.name))
     }
 
     const destination = Destination.parse(message.destination)
