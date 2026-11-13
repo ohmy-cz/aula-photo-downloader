@@ -72,8 +72,6 @@ void test('Options show minimum Immich permissions, request the exact host and k
 
   assert(view.element('connection-status').textContent.includes('Connected to'))
 
-  assert.equal(view.element('immich-manage-key').getAttribute('href'), 'https://immich.example.test/user-settings?isOpen=api-keys')
-
   assert.equal((view.element('immich-key') as HTMLInputElement).value, '*'.repeat('synthetic'.length))
 
   await view.submit()

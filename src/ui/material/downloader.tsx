@@ -142,9 +142,6 @@ export const Downloader = ({
           )}
           label={t('includeChildTags')}
         />
-        <Typography variant="caption" color="text.secondary">
-          {t('locationNotice')}
-        </Typography>
         {state.loading && (
           <Skeleton variant="rounded" height={8} aria-label={t('collecting')} />
         )}
