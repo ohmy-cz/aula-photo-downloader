@@ -15,6 +15,8 @@ Hence the __Aula Photo Downloader__.
 
 This nifty Chrome plugin allows you with two clicks to download the photos you have access to, tagged with the date/time shown in Aula; additionaly it tags the people in the photos in those files too for further taxonomy.
 
+![Main plugin panel after a successful Immich import, using synthetic data](docs/images/import-panel.png)
+
 ## Privacy considerations
 **Photo tagging happens entirely on your device. Photos stay on your computer unless you choose to import them to your configured Immich server.** No telemetrics are sent anywhere.
 Effectively, this plugin can *only* "see" what you see on your screen; it only works with the data you had been granted access to and "glues" those on the files you were given the right to download. no witchcraft here. This plugin is read-only in relation to Aula.
