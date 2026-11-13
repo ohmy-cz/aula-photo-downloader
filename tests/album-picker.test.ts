@@ -75,13 +75,79 @@ void test('Album search preserves the remembered choice, handles duplicate/accen
 
   assert.deepEqual({ ...view.messages.find(message => message.type === 'immich-select')?.destination }, { connectionId: selection.connectionId, albumId: required(selection.albums[3]).id })
 
-  assert((view.element('immich-album') as HTMLInputElement).disabled)
+  await until(() => !view.host.shadowRoot?.querySelector('[role="dialog"]'))
 
-  assert((view.element('immich-import') as HTMLButtonElement).disabled)
+  assert((view.element('toggle') as HTMLButtonElement).disabled)
+
+  assert((view.element('download-instead') as HTMLButtonElement).disabled)
 
   view.finishProcessing()
 
+  await until(() => !(view.element('toggle') as HTMLButtonElement).disabled)
+
+  assert.equal(view.element('phase').textContent, en.importFinished)
+
+  assert(view.element('phase').querySelector('svg'))
+
+  assert.equal(view.element('phase').parentElement, view.element('count').parentElement)
+
+  assert(!(view.element('download-instead') as HTMLButtonElement).disabled)
+})
+
+void test('Collection uses a skeleton in the main panel; Stop settles the run and unlocks import without reopening the picker', async () => {
+  const view = await panel(['da'], { immich: albums() })
+
+  view.hold()
+
+  await view.click('toggle')
+
+  await until(() => !!view.query('immich-import') && !(view.element('immich-import') as HTMLButtonElement).disabled)
+
+  await view.click('immich-import')
+
   await until(() => !view.host.shadowRoot?.querySelector('[role="dialog"]'))
+
+  assert(view.element('download-progress').querySelector('.MuiSkeleton-root'))
+
+  assert.equal(view.element('toggle').textContent, 'Vælg album og importér')
+
+  assert((view.element('toggle') as HTMLButtonElement).disabled)
+
+  assert((view.element('download-instead') as HTMLButtonElement).disabled)
+
+  await view.click('stop')
+
+  await until(() => !(view.element('toggle') as HTMLButtonElement).disabled)
+
+  assert(!view.query('immich-album'))
+
+  assert(view.element('download-progress').hidden)
+
+  assert(!view.element('phase').querySelector('svg'))
+
+  assert(!(view.element('download-instead') as HTMLButtonElement).disabled)
+})
+
+void test('A failed import stays in the main panel with its error and re-enabled actions', async () => {
+  const view = await panel(['en'], { immich: albums(), processError: 'immich-auth' })
+
+  view.window.Math.random = () => 0
+
+  await view.click('toggle')
+
+  await until(() => !!view.query('immich-import') && !(view.element('immich-import') as HTMLButtonElement).disabled)
+
+  await view.click('immich-import')
+
+  await until(() => view.messages.some(message => message.type === 'process') && !(view.element('toggle') as HTMLButtonElement).disabled)
+
+  assert(!view.host.shadowRoot?.querySelector('[role="dialog"]'))
+
+  assert(view.element('phase').classList.contains('error'))
+
+  assert(view.element('file-error-list').textContent.includes(en.errors['immich-auth']))
+
+  assert(!(view.element('download-instead') as HTMLButtonElement).disabled)
 })
 
 void test('Missing thumbnail permissions show a notice and placeholders while album selection stays usable', async () => {

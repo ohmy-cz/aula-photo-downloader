@@ -9,6 +9,10 @@ import settings from '../config.json' with { type: 'json' }
 // Changing a digest requires inspecting the decoded content and metadata; never approve a live capture.
 const approvedFixtures = new Map([
   [
+    'docs/images/import-panel.png',
+    '69036fe98d76790e8ad68df9478814bec10b90bf7a3250387d7e40f4ff541a11',
+  ],
+  [
     'static/icons/128.png',
     '5da576c5eee669c8db33425b97de72346142a33fa43c5f12210989e532b2133f',
   ],

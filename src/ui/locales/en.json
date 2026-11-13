@@ -74,7 +74,6 @@
   },
   "privacy": "Privacy",
   "includeChildTags": "Include tagged children's names in photo metadata (optional)",
-  "locationNotice": "Existing photo location metadata is retained. Only archive media you may access; keep other people's photos private.",
   "clearHistory": "Clear saved import dates",
   "historyCleared": "Saved import dates cleared. Downloaded files were kept.",
   "historyBusy": "A download is still active. Wait for it to finish before clearing history.",
@@ -82,14 +81,14 @@
   "openDownloader": "Open downloader",
   "settings": "Settings",
   "import": "Import",
-  "downloadInstead": "Download files instead",
+  "downloadInstead": "Download",
   "cancel": "Cancel",
   "retryAction": "Try again",
   "immichChooseAlbum": "Import to an Immich album",
   "immichAlbum": "Immich album",
   "immichNoAlbums": "No writable albums found. Create one below or ask for editor access.",
   "importProcessing": "Processing and importing to Immich",
-  "importFinished": "Imported to Immich",
+  "importFinished": "Import successful",
   "importStopped": "Stopped · completed imports were kept",
   "importStopping": "Stopping · current import can finish",
   "immichDescription": "Connect your Immich server to import processed photos and videos directly. You choose the target album for each import. Local downloading remains available.",
@@ -112,5 +111,5 @@
   "immichAlbumName": "New album name",
   "immichPermissionCreate": "Create empty albums for importing.",
   "immichCreatePermission": "Check your Immich API key and make sure it has album.create permission.",
-  "immichManageKey": "Manage API keys in Immich"
+  "chooseAlbumAndImport": "Choose album and import"
 }

@@ -1,7 +1,7 @@
 # Aula Photo Downloader
 
 [![Checks](https://github.com/ohmy-cz/aula-photo-downloader/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/ohmy-cz/aula-photo-downloader/actions/workflows/checks.yml)
-[![Latest release](https://img.shields.io/badge/release-latest-blue)](https://github.com/ohmy-cz/aula-photo-downloader/releases/latest)
+[![Version v0.0.10](https://img.shields.io/badge/version-v0.0.10-blue)](https://github.com/ohmy-cz/aula-photo-downloader/releases/latest)
 [![Project license](https://img.shields.io/badge/project%20license-MIT-blue)](LICENSE)
 
 ## Motivation

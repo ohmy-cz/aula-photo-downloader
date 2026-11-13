@@ -62,7 +62,11 @@ Imports reuse local metadata processing without Chrome download pacing. Before c
 
 The searchable MUI album picker loads covers only for visible options and caches them for that dialog. The background proxies bounded raster previews from the saved server without returning credentials, following redirects or storing images. Preview requests do not block the transfer queue. Missing `asset.view` shows a notice and placeholders; imports remain available.
 
-The picker can create an empty private album with `POST /albums` and the `album.create` permission. It selects the returned album only after a validated server response. Creation is never retried automatically; failures preserve the form. Settings link to Immich’s API-key editor so users can update the existing key’s permissions.
+The picker can create an empty private album with `POST /albums` and the `album.create` permission. It selects the returned album only after a validated server response. Creation is never retried automatically; failures preserve the form.
+
+Once Immich confirms the destination, the picker closes and the main panel shows collection and transfer progress. Its import and download actions remain disabled until the run settles; a separate Stop action cancels further files. Unknown totals use skeleton loading, while confirmed progress uses a determinate bar. Successful imports show a checkmark beside the final counts.
+
+`docs/images/import-panel.png` shows the maintained UI against a synthetic local gallery with invented dates. It contains no Aula media, account information or embedded EXIF/XMP metadata; its pixels and metadata were reviewed before approving the privacy-check digest.
 
 ## Processing components
 

@@ -39,6 +39,7 @@ export const createUiTheme = (container: HTMLElement) => {
     shape: { borderRadius: 12 },
     components: {
       ...(locales[uiLanguage()] ?? enUS).components,
+      MuiSkeleton: { defaultProps: { animation: 'wave' } },
       MuiStack: { defaultProps: { useFlexGap: true } },
       MuiButton: { defaultProps: { disableElevation: true } },
       MuiTextField: { defaultProps: { size: 'small', fullWidth: true } },

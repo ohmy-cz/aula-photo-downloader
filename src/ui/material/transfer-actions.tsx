@@ -1,6 +1,7 @@
 import type { AlbumSelection, ImmichAlbum, PreparedDestination } from '../../immich/contracts'
 import type { DownloaderModel } from './downloader-model'
 import AddOutlined from '@mui/icons-material/AddOutlined'
+import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined'
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
 import Alert from '@mui/material/Alert'
@@ -13,7 +14,6 @@ import Link from '@mui/material/Link'
 import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
 import { useState, useSyncExternalStore } from 'react'
 import { CONFIG } from '../../config'
 import { AppError } from '../../errors'
@@ -22,7 +22,7 @@ import { t, translateError } from '../i18n'
 import { AlbumPicker } from './album-picker'
 import { useTrustedAction } from './use-trusted-action'
 
-/** Choose a destination before importing; keep the dialog and controls locked until all server receipts settle. */
+/** Confirm the destination in the picker, then show the transfer and its receipts in the main panel. */
 export const TransferActions = ({ model }: { model: DownloaderModel }) => {
   const state = useSyncExternalStore(model.subscribe, model.getSnapshot)
 
@@ -88,7 +88,7 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
     }
   }
 
-  /** Persist a server-validated selection before collection, and close only after a complete successful import. */
+  /** Close after the destination is confirmed; preparation failures stay in the picker, transfer failures stay in the panel. */
   const importAlbum = async () => {
     if (!albums || !selectedId) {
       return
@@ -99,14 +99,9 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
     try {
       const { latestPhotoAt, ...destination } = await request<PreparedDestination>({ type: 'immich-select', destination: { connectionId: albums.connectionId, albumId: selectedId } })
 
-      await model.start(destination, latestPhotoAt)
+      setOpen(false)
 
-      if (model.getSnapshot().batch?.phase === 'finished') {
-        setOpen(false)
-      }
-      else {
-        setError(model.getSnapshot().status)
-      }
+      await model.start(destination, latestPhotoAt)
     }
     catch (error) {
       setError(translateError(error))
@@ -121,9 +116,9 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
         size="large"
         fullWidth
         autoFocus
-        disabled={state.loading || (busy && !working) || !!state.controller?.signal.aborted}
-        color={working ? 'error' : 'primary'}
-        startIcon={working ? <StopOutlined /> : <DownloadOutlined />}
+        disabled={state.loading || (state.immichConnected ? busy || working : (busy && !working) || !!state.controller?.signal.aborted)}
+        color={working && !state.immichConnected ? 'error' : 'primary'}
+        startIcon={state.immichConnected ? <CloudUploadOutlined /> : working ? <StopOutlined /> : <DownloadOutlined />}
         onClick={(event) => {
           if (event.isTrusted) {
             if (working) {
@@ -140,8 +135,24 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
           }
         }}
       >
-        {t(working ? 'stop' : state.immichConnected ? 'import' : 'start')}
+        {t(state.immichConnected ? 'chooseAlbumAndImport' : working ? 'stop' : 'start')}
       </Button>
+      {state.immichConnected && working && (
+        <Button
+          id="stop"
+          color="error"
+          variant="outlined"
+          startIcon={<StopOutlined />}
+          disabled={!!state.controller?.signal.aborted}
+          onClick={(event) => {
+            if (event.isTrusted) {
+              model.stop()
+            }
+          }}
+        >
+          {t('stop')}
+        </Button>
+      )}
       {state.immichConnected && (
         <Link
           component="button"
@@ -149,6 +160,7 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
           type="button"
           disabled={state.loading || busy || working}
           variant="body2"
+          sx={{ '&:disabled': { color: 'action.disabled', textDecoration: 'none' } }}
           onClick={(event) => {
             if (event.isTrusted) {
               void model.start()
@@ -173,6 +185,7 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {!albums && !error && <Skeleton variant="rounded" height={56} />}
+            {albums && busy && !creating && <Skeleton variant="rounded" height={8} />}
             {error && <Alert severity="error">{error}</Alert>}
             {albums && (albums.albums.length
               ? (
@@ -215,25 +228,11 @@ export const TransferActions = ({ model }: { model: DownloaderModel }) => {
                     {t('immichCreateAlbum')}
                   </Button>
                 ))}
-            {working && <Typography role="status" variant="body2">{state.status}</Typography>}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} disabled={busy || working}>{t('cancel')}</Button>
           {error && <Button disabled={busy || working} onClick={(event) => { void run(event, chooseAlbum) }}>{t('retryAction')}</Button>}
-          {working && (
-            <Button
-              color="error"
-              disabled={!!state.controller?.signal.aborted}
-              onClick={(event) => {
-                if (event.isTrusted) {
-                  model.stop()
-                }
-              }}
-            >
-              {t('stop')}
-            </Button>
-          )}
           <Button id="immich-import" variant="contained" disabled={!albums || !selectedId || creating || busy || working} onClick={(event) => { void run(event, importAlbum) }}>{t('import')}</Button>
         </DialogActions>
       </Dialog>

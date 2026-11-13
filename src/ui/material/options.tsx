@@ -182,7 +182,6 @@ const Options = () => {
           {t('immichPermissionAdd')}
         </li>
       </Typography>
-      {status.server && <Button id="immich-manage-key" component="a" href={`${status.server}/user-settings?isOpen=api-keys`} target="_blank" rel="noopener noreferrer" disabled={loading || busy}>{t('immichManageKey')}</Button>}
       <Stack direction="row" spacing={1}>
         <Button id="immich-connect" type="submit" variant="contained" disabled={loading || busy}>{t('immichConnect')}</Button>
         <Button id="immich-disconnect" onClick={(event) => { void run(event, disconnect) }} disabled={loading || busy || !status.server}>{t('immichDisconnect')}</Button>

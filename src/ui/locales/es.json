@@ -77,7 +77,6 @@
   },
   "privacy": "Privacidad",
   "includeChildTags": "Incluir los nombres de los niños etiquetados en los metadatos de las fotos (opcional)",
-  "locationNotice": "Se conservan los metadatos de ubicación existentes de las fotos. Archiva solo los medios a los que tengas permiso de acceso; mantén privadas las fotos de otras personas.",
   "clearHistory": "Borrar las fechas de importación guardadas",
   "historyCleared": "Se borraron las fechas de importación guardadas. Los archivos descargados se conservaron.",
   "historyBusy": "Todavía hay una descarga activa. Espera a que termine antes de borrar el historial.",
@@ -85,14 +84,14 @@
   "openDownloader": "Abrir panel de descarga",
   "settings": "Configuración",
   "import": "Importar",
-  "downloadInstead": "Descargar los archivos en su lugar",
+  "downloadInstead": "Descargar",
   "cancel": "Cancelar",
   "retryAction": "Reintentar",
   "immichChooseAlbum": "Importar a un álbum de Immich",
   "immichAlbum": "Álbum de Immich",
   "immichNoAlbums": "No se encontraron álbumes con permiso de escritura. Crea uno abajo o solicita acceso de edición.",
   "importProcessing": "Procesando e importando a Immich",
-  "importFinished": "Importado a Immich",
+  "importFinished": "Importación completada",
   "importStopped": "Detenido · se conservaron las importaciones completadas",
   "importStopping": "Deteniendo · la importación actual puede finalizar",
   "immichDescription": "Conecta tu servidor Immich para importar directamente fotos y vídeos procesados. Eliges el álbum de destino en cada importación. La descarga local sigue disponible.",
@@ -115,5 +114,5 @@
   "immichAlbumName": "Nombre del nuevo álbum",
   "immichPermissionCreate": "Crear álbumes vacíos para importar.",
   "immichCreatePermission": "Revisa tu clave API de Immich y asegúrate de que tenga el permiso album.create.",
-  "immichManageKey": "Gestionar claves API en Immich"
+  "chooseAlbumAndImport": "Elegir álbum e importar"
 }
